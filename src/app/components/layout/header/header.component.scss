@@ -1,0 +1,42 @@
+.navbar-brand {
+  font-size: 1.25rem;
+  
+  i {
+    color: #fff;
+  }
+}
+
+.btn-link {
+  text-decoration: none;
+  border: none;
+  
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.dropdown-toggle::after {
+  margin-left: 0.5em;
+}
+
+.badge {
+  font-size: 0.6rem;
+  position: relative;
+  top: -8px;
+  left: -8px;
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .navbar-brand {
+    font-size: 1rem;
+    
+    strong {
+      display: none;
+    }
+  }
+  
+  .me-2.text-end {
+    display: none;
+  }
+}

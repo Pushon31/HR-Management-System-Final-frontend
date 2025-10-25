@@ -1,0 +1,38 @@
+<aside class="sidebar bg-dark text-white" [class.collapsed]="sidebarCollapsed">
+  <div class="sidebar-sticky">
+    
+    <!-- User Info -->
+    <div class="user-info p-3 border-bottom border-secondary" *ngIf="!sidebarCollapsed">
+      <div class="d-flex align-items-center">
+        <div class="user-avatar me-3">
+          <i class="fas fa-user-circle fa-2x text-light"></i>
+        </div>
+        <div class="user-details">
+          <h6 class="mb-0 text-truncate">{{ currentUser?.fullName || 'User' }}</h6>
+          <small class="text-muted">{{ userRole }}</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Collapsed User Info -->
+    <div class="user-info-collapsed text-center py-3 border-bottom border-secondary" *ngIf="sidebarCollapsed">
+      <i class="fas fa-user-circle fa-lg text-light"></i>
+    </div>
+
+    <!-- Navigation Menu -->
+    <nav class="sidebar-nav">
+      <ul class="nav flex-column">
+        <li class="nav-item" *ngFor="let item of navigationItems">
+          <a class="nav-link d-flex align-items-center" 
+             [class.active]="isActiveRoute(item.path)"
+             (click)="navigateTo(item.path)"
+             [title]="sidebarCollapsed ? item.label : ''">
+            <i [class]="item.icon" class="me-3"></i>
+            <span *ngIf="!sidebarCollapsed">{{ item.label }}</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+  </div>
+</aside>

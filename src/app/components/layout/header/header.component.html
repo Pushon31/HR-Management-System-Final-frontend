@@ -1,0 +1,55 @@
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+  <div class="container-fluid">
+    <!-- Sidebar Toggle -->
+    <button class="btn btn-link text-white" (click)="onToggleSidebar()">
+      <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Brand -->
+    <a class="navbar-brand mx-2" href="#">
+      <i class="fas fa-tshirt me-2"></i>
+      <strong>Garment HR System</strong>
+    </a>
+
+    <!-- User Menu -->
+    <div class="d-flex align-items-center">
+      <!-- Notifications -->
+      <div class="dropdown me-3">
+        <button class="btn btn-link text-white dropdown-toggle" type="button" data-bs-toggle="dropdown">
+          <i class="fas fa-bell"></i>
+          <span class="badge bg-danger rounded-pill">3</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><a class="dropdown-item" href="#">New leave request</a></li>
+          <li><a class="dropdown-item" href="#">Task assigned</a></li>
+          <li><a class="dropdown-item" href="#">Payroll processed</a></li>
+        </ul>
+      </div>
+
+      <!-- User Profile -->
+      <div class="dropdown">
+        <button class="btn btn-link text-white dropdown-toggle d-flex align-items-center" 
+                type="button" data-bs-toggle="dropdown">
+          <div class="me-2 text-end">
+            <div class="small fw-bold">{{ currentUser?.fullName || 'User' }}</div>
+            <div class="small text-white-50">{{ userRole }}</div>
+          </div>
+          <i class="fas fa-user-circle fa-lg"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li>
+            <a class="dropdown-item" href="#" (click)="onNavigateToProfile(); $event.preventDefault()">
+              <i class="fas fa-user me-2"></i>Profile
+            </a>
+          </li>
+          <li><hr class="dropdown-divider"></li>
+          <li>
+            <a class="dropdown-item text-danger" href="#" (click)="onLogout(); $event.preventDefault()">
+              <i class="fas fa-sign-out-alt me-2"></i>Logout
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</nav>

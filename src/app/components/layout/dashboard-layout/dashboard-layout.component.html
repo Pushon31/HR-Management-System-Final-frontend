@@ -1,0 +1,32 @@
+<div class="dashboard-layout">
+  <!-- Header -->
+  <app-header 
+    [currentUser]="currentUser"
+    [userRole]="userRole"
+    [sidebarCollapsed]="sidebarCollapsed"
+    (toggleSidebar)="toggleSidebar()"
+    (logout)="logout()"
+    (navigateToProfile)="navigateToProfile()">
+  </app-header>
+
+  <div class="container-fluid">
+    <div class="row">
+      <!-- Sidebar -->
+      <div class="col-md-3 col-lg-2 sidebar" [class.collapsed]="sidebarCollapsed">
+        <app-sidebar 
+          [currentUser]="currentUser"
+          [userRole]="userRole"
+          [sidebarCollapsed]="sidebarCollapsed">
+        </app-sidebar>
+      </div>
+
+      <!-- Main Content -->
+      <main class="col-md-9 col-lg-10 ms-sm-auto px-md-4 main-content" [class.collapsed]="sidebarCollapsed">
+        <router-outlet></router-outlet>
+      </main>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <app-footer></app-footer>
+</div>
