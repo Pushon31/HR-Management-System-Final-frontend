@@ -1,1 +1,152 @@
-<p>department-form works!</p>
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">
+      {{ isEditMode ? 'Edit Department' : 'Create New Department' }}
+    </h1>
+    <button type="button" class="d-none d-sm-inline-block btn btn-sm btn-secondary shadow-sm" 
+            (click)="onCancel()">
+      <i class="fas fa-arrow-left fa-sm text-white-50 mr-2"></i> Back to Departments
+    </button>
+  </div>
+
+  <!-- Form Card -->
+  <div class="card shadow mb-4">
+    <div class="card-header py-3">
+      <h6 class="m-0 font-weight-bold text-primary">
+        {{ isEditMode ? 'Edit Department Details' : 'Enter Department Information' }}
+      </h6>
+    </div>
+    <div class="card-body">
+      <!-- Loading State -->
+      <div *ngIf="loading" class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-2">Loading department data...</p>
+      </div>
+
+      <!-- Department Form -->
+      <form *ngIf="!loading" [formGroup]="departmentForm" (ngSubmit)="onSubmit()">
+        <div class="row">
+          <!-- Basic Information -->
+          <div class="col-md-6">
+            <h5 class="text-primary mb-3">Basic Information</h5>
+            
+            <!-- Department Name -->
+            <div class="form-group">
+              <label for="name" class="form-label">Department Name *</label>
+              <input type="text" class="form-control" id="name" formControlName="name"
+                     [class.is-invalid]="f['name'].touched && f['name'].errors"
+                     placeholder="Enter department name">
+              <div *ngIf="f['name'].touched && f['name'].errors" class="invalid-feedback">
+                <div *ngIf="f['name'].errors['required']">Department name is required</div>
+                <div *ngIf="f['name'].errors['minlength']">Department name must be at least 2 characters</div>
+                <div *ngIf="f['name'].errors['maxlength']">Department name cannot exceed 100 characters</div>
+              </div>
+            </div>
+
+            <!-- Department Code -->
+            <div class="form-group">
+              <label for="code" class="form-label">Department Code *</label>
+              <input type="text" class="form-control" id="code" formControlName="code"
+                     [class.is-invalid]="f['code'].touched && f['code'].errors"
+                     placeholder="Enter department code (e.g., HR, IT, FIN)">
+              <div *ngIf="f['code'].touched && f['code'].errors" class="invalid-feedback">
+                <div *ngIf="f['code'].errors['required']">Department code is required</div>
+                <div *ngIf="f['code'].errors['minlength']">Department code must be at least 2 characters</div>
+                <div *ngIf="f['code'].errors['maxlength']">Department code cannot exceed 20 characters</div>
+              </div>
+            </div>
+
+            <!-- Location -->
+            <div class="form-group">
+              <label for="location" class="form-label">Location</label>
+              <input type="text" class="form-control" id="location" formControlName="location"
+                     placeholder="Enter department location">
+            </div>
+
+            <!-- Status -->
+            <div class="form-group">
+              <label for="status" class="form-label">Status *</label>
+              <select class="form-control" id="status" formControlName="status"
+                      [class.is-invalid]="f['status'].touched && f['status'].errors">
+                <option *ngFor="let option of statusOptions" [value]="option.value">
+                  {{ option.label }}
+                </option>
+              </select>
+              <div *ngIf="f['status'].touched && f['status'].errors" class="invalid-feedback">
+                Status is required
+              </div>
+            </div>
+          </div>
+
+          <!-- Additional Information -->
+          <div class="col-md-6">
+            <h5 class="text-primary mb-3">Additional Information</h5>
+            
+            <!-- Description -->
+            <div class="form-group">
+              <label for="description" class="form-label">Description</label>
+              <textarea class="form-control" id="description" formControlName="description"
+                        rows="3" placeholder="Enter department description"
+                        [class.is-invalid]="f['description'].touched && f['description'].errors"></textarea>
+              <div *ngIf="f['description'].touched && f['description'].errors" class="invalid-feedback">
+                Description cannot exceed 255 characters
+              </div>
+            </div>
+
+            <!-- Budget -->
+            <div class="form-group">
+              <label for="budget" class="form-label">Annual Budget (BDT)</label>
+              <input type="number" class="form-control" id="budget" formControlName="budget"
+                     min="0" step="1000" placeholder="Enter annual budget">
+            </div>
+
+            <!-- Established Date -->
+            <div class="form-group">
+              <label for="establishedDate" class="form-label">Established Date</label>
+              <input type="date" class="form-control" id="establishedDate" formControlName="establishedDate">
+            </div>
+
+            <!-- Department Head -->
+            <div class="form-group">
+              <label for="departmentHeadId" class="form-label">Department Head</label>
+              <select class="form-control" id="departmentHeadId" formControlName="departmentHeadId">
+                <option [value]="null">Select Department Head</option>
+                <option *ngFor="let employee of employees" [value]="employee.id">
+                  {{ getEmployeeDisplayName(employee) }}
+                </option>
+              </select>
+              <small class="form-text text-muted">
+                Select an employee to assign as department head
+              </small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="row mt-4">
+          <div class="col-12">
+            <div class="d-flex justify-content-end gap-2">
+              <button type="button" class="btn btn-secondary" (click)="onCancel()">
+                <i class="fas fa-times mr-2"></i>Cancel
+              </button>
+              <button type="submit" class="btn btn-primary" [disabled]="submitting || departmentForm.invalid">
+                <span *ngIf="submitting" class="spinner-border spinner-border-sm mr-2"></span>
+                <i class="fas" [class.fa-save]="!submitting" [class.fa-spinner]="submitting" class="mr-2"></i>
+                {{ isEditMode ? 'Update Department' : 'Create Department' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Form Status -->
+  <div *ngIf="departmentForm.dirty" class="alert alert-info">
+    <i class="fas fa-info-circle mr-2"></i>
+    You have unsaved changes. Please save or cancel before leaving.
+  </div>
+</div>

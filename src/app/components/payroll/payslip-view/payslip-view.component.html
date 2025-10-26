@@ -1,1 +1,156 @@
-<p>payslip-view works!</p>
+<div class="card">
+  <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">
+      <i class="fas fa-file-invoice-dollar me-2"></i>
+      {{ isEmployeeView ? 'My Payslips' : 'Payslip Management' }}
+    </h5>
+    <button *ngIf="!isEmployeeView" class="btn btn-light btn-sm" routerLink="/admin/payroll/process">
+      <i class="fas fa-calculator me-1"></i> Process Payroll
+    </button>
+  </div>
+  <div class="card-body">
+    
+    <!-- Loading Spinner -->
+    <div *ngIf="isLoading" class="text-center py-4">
+      <div class="spinner-border text-info" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <p class="mt-2">Loading payslips...</p>
+    </div>
+
+    <!-- Filters -->
+    <div *ngIf="!isLoading" class="row mb-3">
+      <div class="col-md-6">
+        <div class="input-group">
+          <span class="input-group-text">
+            <i class="fas fa-search"></i>
+          </span>
+          <input type="text" class="form-control" placeholder="Search by employee name, code or payslip code..." 
+                 [(ngModel)]="searchTerm" (input)="applyFilters()">
+        </div>
+      </div>
+      <div class="col-md-4">
+        <select class="form-select" [(ngModel)]="payPeriodFilter" (change)="onPayPeriodChange()">
+          <option value="">All Periods</option>
+          <option *ngFor="let period of getPayPeriodOptions()" [value]="period">
+            {{ period }}
+          </option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-outline-info w-100" (click)="applyFilters()">
+          <i class="fas fa-filter"></i> Filter
+        </button>
+      </div>
+    </div>
+
+    <!-- Payslips Table -->
+    <div *ngIf="!isLoading" class="table-responsive">
+      <table class="table table-striped table-hover">
+        <thead class="table-dark">
+          <tr>
+            <th>Payslip Code</th>
+            <th>Employee</th>
+            <th>Pay Period</th>
+            <th>Basic Salary</th>
+            <th>Allowances</th>
+            <th>Deductions</th>
+            <th>Net Salary</th>
+            <th>Status</th>
+            <th>Issue Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let payslip of filteredPayslips">
+            <td>
+              <strong>{{ payslip.payslipCode }}</strong>
+            </td>
+            <td>
+              <div class="fw-bold">{{ payslip.employeeName }}</div>
+              <small class="text-muted">{{ payslip.employeeCode }} - {{ payslip.designation }}</small>
+            </td>
+            <td>{{ payslip.payPeriod }}</td>
+            <td class="text-primary">{{ formatCurrency(payslip.basicSalary) }}</td>
+            <td class="text-success">{{ formatCurrency(payslip.totalAllowances) }}</td>
+            <td class="text-danger">{{ formatCurrency(payslip.deductions) }}</td>
+            <td class="fw-bold text-success">{{ formatCurrency(payslip.netSalary) }}</td>
+            <td>
+              <span [class]="getStatusBadgeClass(payslip.status)">
+                {{ payslip.status }}
+              </span>
+            </td>
+            <td>{{ payslip.issueDate | date:'dd/MM/yyyy' }}</td>
+            <td>
+              <div class="btn-group btn-group-sm">
+                <button class="btn btn-outline-primary" (click)="downloadPayslip(payslip)">
+                  <i class="fas fa-download"></i>
+                </button>
+                <button *ngIf="!isEmployeeView && !payslip.isGenerated" 
+                        class="btn btn-outline-success" 
+                        (click)="generatePayslip(payslip.payrollId)">
+                  <i class="fas fa-file-invoice"></i>
+                </button>
+                <button class="btn btn-outline-info" 
+                        [routerLink]="['/admin/payroll/payslips', payslip.id]">
+                  <i class="fas fa-eye"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="filteredPayslips.length === 0 && payslips.length > 0">
+            <td colspan="10" class="text-center text-muted py-4">
+              <i class="fas fa-search fa-2x mb-3"></i>
+              <p>No payslips match your search criteria</p>
+            </td>
+          </tr>
+          <tr *ngIf="payslips.length === 0">
+            <td colspan="10" class="text-center text-muted py-4">
+              <i class="fas fa-file-invoice-dollar fa-2x mb-3"></i>
+              <p>No payslips found for the selected period</p>
+              <button *ngIf="!isEmployeeView" class="btn btn-info btn-sm" routerLink="/admin/payroll/process">
+                Process Payroll to Generate Payslips
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Summary -->
+  <div *ngIf="!isLoading && filteredPayslips.length > 0" class="row mt-4">
+  <div class="col-md-3">
+    <div class="card bg-primary text-white">
+      <div class="card-body text-center">
+        <h4>{{ filteredPayslips.length }}</h4>
+        <p class="mb-0">Total Payslips</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card bg-success text-white">
+      <div class="card-body text-center">
+        <h4>{{ formatCurrency(totalBasicSalary) }}</h4>
+        <p class="mb-0">Total Basic</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card bg-info text-white">
+      <div class="card-body text-center">
+        <h4>{{ formatCurrency(totalNetSalary) }}</h4>
+        <p class="mb-0">Total Net Salary</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card bg-warning text-white">
+      <div class="card-body text-center">
+        <h4>{{ generatedPayslipsCount }}</h4>
+        <p class="mb-0">Generated</p>
+      </div>
+    </div>
+  </div>
+</div>
+  </div>
+</div>

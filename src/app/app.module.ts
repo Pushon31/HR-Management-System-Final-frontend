@@ -54,6 +54,14 @@ import { ErrorInterceptor } from './interceptors/error.interceptor';
 import { EmployeeService } from './services/employee.service';
 import { DepartmentService } from './services/department.service';
 import { UserService } from './services/user.service';
+import { JobFormComponent } from './components/recruitment/job-form/job-form.component';
+import { JobListComponent } from './components/recruitment/job-list/job-list.component';
+import { CandidateListComponent } from './components/recruitment/candidate-list/candidate-list.component';
+import { InterviewScheduleComponent } from './components/recruitment/interview-schedule/interview-schedule.component';
+import { SalaryStructureComponent } from './components/payroll/salary-structure/salary-structure.component';
+import { PayrollProcessComponent } from './components/payroll/payroll-process/payroll-process.component';
+import { PayslipViewComponent } from './components/payroll/payslip-view/payslip-view.component';
+import { BonusManagementComponent } from './components/payroll/bonus-management/bonus-management.component';
 
 @NgModule({
   declarations: [
@@ -92,7 +100,21 @@ import { UserService } from './services/user.service';
     LeaveApplicationComponent,
     LeaveBalanceComponent,
     LeaveApprovalComponent,
-    LeaveHistoryComponent
+    LeaveHistoryComponent,
+
+    JobFormComponent,
+    JobListComponent,
+    CandidateListComponent,
+    InterviewScheduleComponent,
+
+
+    SalaryStructureComponent,
+    PayrollProcessComponent,
+    PayslipViewComponent,
+    BonusManagementComponent
+
+
+
   ],
   imports: [
     BrowserModule,

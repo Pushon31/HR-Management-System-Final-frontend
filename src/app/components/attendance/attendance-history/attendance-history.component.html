@@ -1,1 +1,238 @@
-<p>attendance-history works!</p>
+<!-- attendance-history.component.html -->
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Attendance History</h1>
+    <button class="btn btn-success" (click)="exportToCSV()" [disabled]="filteredHistory.length === 0">
+      <i class="fas fa-download mr-2"></i>Export CSV
+    </button>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-primary shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                Total Working Days
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">
+                {{ summary.totalWorkingDays || 0 }}
+              </div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-calendar fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-success shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                Present Days
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">
+                {{ summary.totalPresent || 0 }}
+              </div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-warning shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                Late Days
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">
+                {{ summary.totalLate || 0 }}
+              </div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-clock fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-info shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                Attendance Percentage
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">
+                {{ (summary.attendancePercentage || 0).toFixed(1) }}%
+              </div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-percentage fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search Filters -->
+  <div class="card shadow mb-4">
+    <div class="card-header py-3">
+      <h6 class="m-0 font-weight-bold text-primary">Search Filters</h6>
+    </div>
+    <div class="card-body">
+      <form [formGroup]="searchForm" (ngSubmit)="onSearch()">
+        <div class="row">
+          <div class="col-md-3">
+            <div class="form-group">
+              <label for="startDate">Start Date</label>
+              <input type="date" class="form-control" id="startDate" formControlName="startDate">
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="form-group">
+              <label for="endDate">End Date</label>
+              <input type="date" class="form-control" id="endDate" formControlName="endDate">
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="form-group">
+              <label for="status">Status</label>
+              <select class="form-control" id="status" formControlName="status">
+                <option value="">All Status</option>
+                <option value="PRESENT">Present</option>
+                <option value="ABSENT">Absent</option>
+                <option value="LATE">Late</option>
+                <option value="HALF_DAY">Half Day</option>
+              </select>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="form-group d-flex align-items-end">
+              <button type="submit" class="btn btn-primary mr-2" [disabled]="loading">
+                <i class="fas fa-search mr-1"></i> Search
+              </button>
+              <button type="button" class="btn btn-secondary" (click)="onReset()">
+                <i class="fas fa-redo mr-1"></i> Reset
+              </button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+      <span class="sr-only">Loading...</span>
+    </div>
+    <p class="mt-2">Loading attendance history...</p>
+  </div>
+
+  <!-- Attendance History Table -->
+  <div *ngIf="!loading" class="card shadow">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+      <h6 class="m-0 font-weight-bold text-primary">Attendance Records</h6>
+      <span class="badge badge-primary">Total: {{ totalItems }} records</span>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive" *ngIf="filteredHistory.length > 0">
+        <table class="table table-bordered table-hover">
+          <thead class="thead-light">
+            <tr>
+              <th>Date</th>
+              <th>Check-in Time</th>
+              <th>Check-out Time</th>
+              <th>Total Hours</th>
+              <th>Status</th>
+              <th>Remarks</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let record of paginatedHistory">
+              <td>
+                <strong>{{ formatDate(record.attendanceDate) }}</strong>
+              </td>
+              <td>
+                <span class="text-success font-weight-bold">
+                  {{ formatTime(record.checkinTime) }}
+                </span>
+              </td>
+              <td>
+                <span class="text-warning font-weight-bold">
+                  {{ formatTime(record.checkoutTime) }}
+                </span>
+              </td>
+              <td>
+                <span class="text-info font-weight-bold">
+                  {{ record.totalHours ? (record.totalHours.toFixed(2) + ' hours') : calculateWorkingHours(record) }}
+                </span>
+              </td>
+              <td>
+                <span [ngClass]="getStatusBadgeClass(record.status)">
+                  {{ record.status }}
+                </span>
+              </td>
+              <td>{{ record.remarks || 'N/A' }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Pagination -->
+        <div class="d-flex justify-content-between align-items-center mt-4">
+          <div class="text-muted">
+            {{ getDisplayRange() }}
+          </div>
+          <nav>
+            <ul class="pagination">
+              <li class="page-item" [class.disabled]="currentPage === 1">
+                <a class="page-link" href="javascript:void(0)" (click)="onPageChange(currentPage - 1)" aria-label="Previous">
+                  <span aria-hidden="true">&laquo;</span>
+                  <span class="sr-only">Previous</span>
+                </a>
+              </li>
+              
+              <li class="page-item" *ngFor="let page of paginationArray" 
+                  [class.active]="currentPage === page">
+                <a class="page-link" href="javascript:void(0)" (click)="onPageChange(page)">
+                  {{ page }}
+                </a>
+              </li>
+              
+              <li class="page-item" [class.disabled]="currentPage === totalPages">
+                <a class="page-link" href="javascript:void(0)" (click)="onPageChange(currentPage + 1)" aria-label="Next">
+                  <span aria-hidden="true">&raquo;</span>
+                  <span class="sr-only">Next</span>
+                </a>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div *ngIf="filteredHistory.length === 0" class="text-center py-5">
+        <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+        <h4 class="text-muted">No attendance records found</h4>
+        <p class="text-muted">Try adjusting your search filters or date range.</p>
+      </div>
+    </div>
+  </div>
+</div>

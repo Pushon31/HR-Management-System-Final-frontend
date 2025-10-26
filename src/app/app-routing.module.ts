@@ -8,6 +8,7 @@ import { RoleGuard } from './guards/role.guard';
 // ==================== AUTH COMPONENTS ====================
 import { LoginComponent } from './components/auth/login/login.component';
 import { ForgotPasswordComponent } from './components/auth/forgot-password/forgot-password.component';
+import { SignupComponent } from './components/auth/signup/signup.component';
 
 // ==================== LAYOUT COMPONENTS ====================
 import { DashboardLayoutComponent } from './components/layout/dashboard-layout/dashboard-layout.component';
@@ -61,7 +62,6 @@ import { ProjectFormComponent } from './components/tasks/project-form/project-fo
 import { EmployeeAnalyticsComponent } from './components/analytics/employee-analytics/employee-analytics.component';
 import { AttendanceAnalyticsComponent } from './components/analytics/attendance-analytics/attendance-analytics.component';
 import { PayrollAnalyticsComponent } from './components/analytics/payroll-analytics/payroll-analytics.component';
-import { SignupComponent } from './components/auth/signup/signup.component';
 
 const routes: Routes = [
   // ==================== PUBLIC ROUTES ====================
@@ -76,15 +76,15 @@ const routes: Routes = [
     data: { title: 'Login - Garment Management System' }
   },
   { 
+    path: 'signup', 
+    component: SignupComponent,
+    data: { title: 'Sign Up - Garment Management System' }
+  },
+  { 
     path: 'forgot-password', 
     component: ForgotPasswordComponent,
     data: { title: 'Forgot Password' }
   },
-  { 
-  path: 'signup', 
-  component: SignupComponent,
-  data: { title: 'Sign Up - Garment Management System' }
-},
 
   // ==================== 👑 ADMIN ROUTES ====================
   {
@@ -188,6 +188,11 @@ const routes: Routes = [
         data: { title: 'Add Candidate' }
       },
       { 
+        path: 'recruitment/candidates/edit/:id', 
+        component: CandidateFormComponent,
+        data: { title: 'Edit Candidate' }
+      },
+      { 
         path: 'recruitment/interviews', 
         component: InterviewScheduleComponent,
         data: { title: 'Interview Schedule' }
@@ -203,6 +208,11 @@ const routes: Routes = [
         path: 'payroll/process', 
         component: PayrollProcessComponent,
         data: { title: 'Process Payroll' }
+      },
+      { 
+        path: 'payroll/payslips', 
+        component: PayslipViewComponent,
+        data: { title: 'Employee Payslips' }
       },
       { 
         path: 'payroll/bonus', 
@@ -321,26 +331,36 @@ const routes: Routes = [
         data: { title: 'Team Leave History' }
       },
       
-      // Recruitment (HR)
+      // Recruitment (HR) - Different paths to avoid conflict
       { 
-        path: 'recruitment/jobs', 
+        path: 'recruitment/postings', 
         component: JobListComponent,
         data: { title: 'Job Postings' }
       },
       { 
-        path: 'recruitment/jobs/add', 
+        path: 'recruitment/postings/add', 
         component: JobFormComponent,
         data: { title: 'Add Job Posting' }
       },
       { 
-        path: 'recruitment/candidates', 
-        component: CandidateListComponent,
-        data: { title: 'Candidates' }
+        path: 'recruitment/postings/edit/:id', 
+        component: JobFormComponent,
+        data: { title: 'Edit Job Posting' }
       },
       { 
-        path: 'recruitment/candidates/add', 
+        path: 'recruitment/applicants', 
+        component: CandidateListComponent,
+        data: { title: 'Job Applicants' }
+      },
+      { 
+        path: 'recruitment/applicants/add', 
         component: CandidateFormComponent,
-        data: { title: 'Add Candidate' }
+        data: { title: 'Add Applicant' }
+      },
+      { 
+        path: 'recruitment/applicants/edit/:id', 
+        component: CandidateFormComponent,
+        data: { title: 'Edit Applicant' }
       },
       { 
         path: 'recruitment/interviews', 
@@ -350,7 +370,7 @@ const routes: Routes = [
       
       // Payroll (Accountant)
       { 
-        path: 'payroll/process', 
+        path: 'payroll/processing', 
         component: PayrollProcessComponent,
         data: { title: 'Process Payroll' }
       },
@@ -391,6 +411,11 @@ const routes: Routes = [
         component: ProjectFormComponent,
         data: { title: 'Create Project' }
       },
+      { 
+        path: 'projects/edit/:id', 
+        component: ProjectFormComponent,
+        data: { title: 'Edit Project' }
+      },
       
       // Default redirect
       { 
@@ -423,6 +448,11 @@ const routes: Routes = [
         path: 'profile', 
         component: EmployeeProfileComponent,
         data: { title: 'My Profile' }
+      },
+      { 
+        path: 'profile/edit', 
+        component: EmployeeFormComponent,
+        data: { title: 'Edit Profile' }
       },
       
       // Attendance

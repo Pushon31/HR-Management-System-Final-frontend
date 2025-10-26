@@ -1,1 +1,97 @@
-<p>candidate-list works!</p>
+<div class="card">
+  <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">Candidates</h5>
+    <button class="btn btn-light btn-sm" routerLink="/recruitment/candidates/new">
+      <i class="fas fa-plus"></i> Add Candidate
+    </button>
+  </div>
+  <div class="card-body">
+    <!-- Filters -->
+    <div class="row mb-3">
+      <div class="col-md-4">
+        <input type="text" class="form-control" placeholder="Search candidates..." 
+               [(ngModel)]="searchTerm" (input)="applyFilters()">
+      </div>
+      <div class="col-md-3">
+        <select class="form-select" [(ngModel)]="statusFilter" (change)="applyFilters()">
+          <option value="ALL">All Status</option>
+          <option value="APPLIED">Applied</option>
+          <option value="SHORTLISTED">Shortlisted</option>
+          <option value="INTERVIEW_SCHEDULED">Interview Scheduled</option>
+          <option value="SELECTED">Selected</option>
+          <option value="REJECTED">Rejected</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <select class="form-select" [(ngModel)]="jobFilter" (change)="applyFilters()">
+          <option value="ALL">All Jobs</option>
+          <option *ngFor="let job of jobs" [value]="job.id">{{ job.title }}</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-outline-secondary w-100" (click)="applyFilters()">
+          <i class="fas fa-filter"></i> Filter
+        </button>
+      </div>
+    </div>
+
+    <!-- Candidates Table -->
+    <div class="table-responsive">
+      <table class="table table-striped table-hover">
+        <thead class="table-dark">
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Job Applied</th>
+            <th>Experience</th>
+            <th>Expected Salary</th>
+            <th>Status</th>
+            <th>Applied Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let candidate of filteredCandidates">
+            <td>{{ candidate.firstName }} {{ candidate.lastName }}</td>
+            <td>{{ candidate.email }}</td>
+            <td>{{ candidate.phone }}</td>
+            <td>{{ getJobTitle(candidate.jobId) }}</td>
+            <td>{{ candidate.experience }}</td>
+            <td>{{ candidate.expectedSalary }}</td>
+            <td>
+              <span [class]="getStatusBadgeClass(candidate.status)">
+                {{ candidate.status.replace('_', ' ') }}
+              </span>
+            </td>
+            <td>{{ candidate.appliedDate | date:'dd/MM/yyyy' }}</td>
+            <td>
+              <div class="btn-group btn-group-sm">
+                <button class="btn btn-outline-primary" [routerLink]="['/recruitment/candidates/edit', candidate.id]">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <div class="dropdown">
+                  <button class="btn btn-outline-info dropdown-toggle" type="button" 
+                          data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-cog"></i>
+                  </button>
+                  <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" (click)="updateStatus(candidate.id!, 'SHORTLISTED')">Shortlist</a></li>
+                    <li><a class="dropdown-item" (click)="updateStatus(candidate.id!, 'INTERVIEW_SCHEDULED')">Schedule Interview</a></li>
+                    <li><a class="dropdown-item" (click)="updateStatus(candidate.id!, 'SELECTED')">Select</a></li>
+                    <li><a class="dropdown-item" (click)="updateStatus(candidate.id!, 'REJECTED')">Reject</a></li>
+                  </ul>
+                </div>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="filteredCandidates.length === 0">
+            <td colspan="9" class="text-center text-muted">
+              No candidates found
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

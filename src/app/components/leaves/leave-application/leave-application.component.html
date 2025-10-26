@@ -1,1 +1,222 @@
-<p>leave-application works!</p>
+<!-- leave-application.component.html -->
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Apply for Leave</h1>
+    <button class="btn btn-primary" routerLink="/employee/leaves/history">
+      <i class="fas fa-history mr-2"></i>View Leave History
+    </button>
+  </div>
+
+  <div class="row">
+    <div class="col-lg-8 mx-auto">
+      <!-- Leave Application Form -->
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Leave Application Form</h6>
+        </div>
+        <div class="card-body">
+          <form [formGroup]="leaveApplicationForm" (ngSubmit)="onSubmit()">
+            <!-- Employee Information -->
+            <div class="row mb-4">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label class="font-weight-bold">Employee Name</label>
+                  <p class="form-control-plaintext">
+                    {{ employeeData?.firstName }} {{ employeeData?.lastName }}
+                  </p>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label class="font-weight-bold">Employee ID</label>
+                  <p class="form-control-plaintext">
+                    {{ employeeData?.employeeId }}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Leave Type -->
+            <div class="form-group">
+              <label for="leaveTypeId">Leave Type *</label>
+              <select 
+                class="form-control" 
+                id="leaveTypeId" 
+                formControlName="leaveTypeId"
+                [class.is-invalid]="leaveApplicationForm.get('leaveTypeId')?.invalid && leaveApplicationForm.get('leaveTypeId')?.touched">
+                <option value="">Select Leave Type</option>
+                <option *ngFor="let leaveType of leaveTypes" [value]="leaveType.id">
+                  {{ leaveType.name }} ({{ leaveType.code }})
+                </option>
+              </select>
+              <div *ngIf="leaveApplicationForm.get('leaveTypeId')?.invalid && leaveApplicationForm.get('leaveTypeId')?.touched" 
+                   class="invalid-feedback">
+                <div *ngIf="leaveApplicationForm.get('leaveTypeId')?.errors?.['required']">
+                  Leave type is required
+                </div>
+                <div *ngIf="leaveApplicationForm.get('leaveTypeId')?.errors?.['notAvailable']">
+                  Leave not available for selected dates
+                </div>
+              </div>
+            </div>
+
+            <!-- Leave Dates -->
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="startDate">Start Date *</label>
+                  <input 
+                    type="date" 
+                    class="form-control" 
+                    id="startDate" 
+                    formControlName="startDate"
+                    [min]="today"
+                    [max]="maxStartDate"
+                    [class.is-invalid]="leaveApplicationForm.get('startDate')?.invalid && leaveApplicationForm.get('startDate')?.touched">
+                  <div *ngIf="leaveApplicationForm.get('startDate')?.invalid && leaveApplicationForm.get('startDate')?.touched" 
+                       class="invalid-feedback">
+                    Start date is required
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="endDate">End Date *</label>
+                  <input 
+                    type="date" 
+                    class="form-control" 
+                    id="endDate" 
+                    formControlName="endDate"
+                    [min]="getMinEndDate()"
+                    [max]="maxEndDate"
+                    [class.is-invalid]="leaveApplicationForm.get('endDate')?.invalid && leaveApplicationForm.get('endDate')?.touched">
+                  <div *ngIf="leaveApplicationForm.get('endDate')?.invalid && leaveApplicationForm.get('endDate')?.touched" 
+                       class="invalid-feedback">
+                    <div *ngIf="leaveApplicationForm.get('endDate')?.errors?.['required']">
+                      End date is required
+                    </div>
+                    <div *ngIf="leaveApplicationForm.get('endDate')?.errors?.['invalidDate']">
+                      End date cannot be before start date
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Calculated Days -->
+            <div class="alert alert-info" *ngIf="calculatedDays > 0">
+              <i class="fas fa-calculator mr-2"></i>
+              <strong>Total Working Days: {{ calculatedDays }}</strong>
+              <br>
+              <small>Weekends are excluded from the calculation</small>
+            </div>
+
+            <!-- Contact Information -->
+            <div class="form-group">
+              <label for="contactNumber">Contact Number During Leave *</label>
+              <input 
+                type="tel" 
+                class="form-control" 
+                id="contactNumber" 
+                formControlName="contactNumber"
+                placeholder="Enter contact number"
+                [class.is-invalid]="leaveApplicationForm.get('contactNumber')?.invalid && leaveApplicationForm.get('contactNumber')?.touched">
+              <div *ngIf="leaveApplicationForm.get('contactNumber')?.invalid && leaveApplicationForm.get('contactNumber')?.touched" 
+                   class="invalid-feedback">
+                Contact number is required
+              </div>
+            </div>
+
+            <!-- Address During Leave -->
+            <div class="form-group">
+              <label for="addressDuringLeave">Address During Leave *</label>
+              <textarea 
+                class="form-control" 
+                id="addressDuringLeave" 
+                formControlName="addressDuringLeave"
+                rows="3"
+                placeholder="Enter your address during leave period"
+                [class.is-invalid]="leaveApplicationForm.get('addressDuringLeave')?.invalid && leaveApplicationForm.get('addressDuringLeave')?.touched">
+              </textarea>
+              <div *ngIf="leaveApplicationForm.get('addressDuringLeave')?.invalid && leaveApplicationForm.get('addressDuringLeave')?.touched" 
+                   class="invalid-feedback">
+                Address during leave is required
+              </div>
+            </div>
+
+            <!-- Reason for Leave -->
+            <div class="form-group">
+              <label for="reason">Reason for Leave *</label>
+              <textarea 
+                class="form-control" 
+                id="reason" 
+                formControlName="reason"
+                rows="4"
+                placeholder="Please provide detailed reason for your leave application..."
+                [class.is-invalid]="leaveApplicationForm.get('reason')?.invalid && leaveApplicationForm.get('reason')?.touched">
+              </textarea>
+              <div *ngIf="leaveApplicationForm.get('reason')?.invalid && leaveApplicationForm.get('reason')?.touched" 
+                   class="invalid-feedback">
+                <div *ngIf="leaveApplicationForm.get('reason')?.errors?.['required']">
+                  Reason for leave is required
+                </div>
+                <div *ngIf="leaveApplicationForm.get('reason')?.errors?.['minlength']">
+                  Reason must be at least 10 characters long
+                </div>
+              </div>
+              <small class="form-text text-muted">
+                Minimum 10 characters required
+              </small>
+            </div>
+
+            <!-- Leave Type Information -->
+            <div *ngIf="getSelectedLeaveType()" class="alert alert-warning">
+              <h6 class="alert-heading">Leave Type Information</h6>
+              <p class="mb-1"><strong>Category:</strong> {{ getSelectedLeaveType()?.category }}</p>
+              <p class="mb-1"><strong>Max Days Per Year:</strong> {{ getSelectedLeaveType()?.maxDaysPerYear }}</p>
+              <p class="mb-1"><strong>Carry Forward:</strong> {{ getSelectedLeaveType()?.carryForwardDays }} days</p>
+              <p class="mb-0"><strong>Approval Required:</strong> {{ getSelectedLeaveType()?.requiresApproval ? 'Yes' : 'No' }}</p>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="form-group text-center mt-4">
+              <button 
+                type="submit" 
+                class="btn btn-success btn-lg px-5"
+                [disabled]="submitting || leaveApplicationForm.invalid">
+                <span *ngIf="submitting" class="spinner-border spinner-border-sm mr-2"></span>
+                <i class="fas fa-paper-plane mr-2"></i>
+                {{ submitting ? 'Submitting...' : 'Submit Leave Application' }}
+              </button>
+              
+              <button 
+                type="button" 
+                class="btn btn-secondary btn-lg px-5 ml-2"
+                routerLink="/employee/dashboard">
+                <i class="fas fa-times mr-2"></i>
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Important Notes -->
+      <div class="card border-left-warning shadow">
+        <div class="card-body">
+          <h6 class="card-title text-warning">
+            <i class="fas fa-exclamation-triangle mr-2"></i>Important Notes
+          </h6>
+          <ul class="mb-0">
+            <li>Submit your leave application at least 3 days in advance for planned leaves</li>
+            <li>For sick leaves, submit application immediately after joining back</li>
+            <li>Ensure all required information is provided accurately</li>
+            <li>You will be notified via email about the approval status</li>
+            <li>Contact your manager for urgent leave requests</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

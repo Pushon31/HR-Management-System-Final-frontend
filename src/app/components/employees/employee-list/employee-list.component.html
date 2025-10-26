@@ -7,6 +7,90 @@
     </a>
   </div>
 
+  <!-- Stats Cards -->
+  <div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-primary shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                Total Employees
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ totalEmployees }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-users fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-success shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                Active Employees
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ activeEmployeesCount }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-user-check fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-info shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                Work Type Distribution
+              </div>
+              <div class="h6 mb-0 font-weight-bold text-gray-800">
+                <div *ngFor="let stat of workTypeStats" class="small">
+                  {{ stat.type }}: {{ stat.count }} ({{ stat.percentage.toFixed(1) }}%)
+                </div>
+                <div *ngIf="workTypeStats.length === 0" class="small text-muted">
+                  No data available
+                </div>
+              </div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-chart-pie fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-warning shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                Active Rate
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">
+                {{ totalEmployees > 0 ? ((activeEmployeesCount / totalEmployees) * 100).toFixed(1) : 0 }}%
+              </div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-percentage fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Filters Card -->
   <div class="card shadow mb-4">
     <div class="card-header py-3">
@@ -20,7 +104,7 @@
             <input type="text" class="form-control" id="search" 
                    [(ngModel)]="searchTerm" 
                    (ngModelChange)="onSearchChange()"
-                   placeholder="Search by name, ID, designation...">
+                   placeholder="Search by name, ID, designation, department...">
           </div>
         </div>
         <div class="col-md-6">
@@ -76,7 +160,12 @@
                 <strong>{{ employee.employeeId }}</strong>
               </td>
               <td>
-                {{ employee.firstName }} {{ employee.lastName }}
+                <div class="font-weight-bold">
+                  {{ employee.firstName }} {{ employee.lastName }}
+                </div>
+                <small class="text-muted" *ngIf="employee.phoneNumber">
+                  {{ employee.phoneNumber }}
+                </small>
               </td>
               <td>{{ employee.email }}</td>
               <td>
@@ -86,7 +175,9 @@
               </td>
               <td>{{ employee.designation || 'Not Specified' }}</td>
               <td>
-                <span class="badge bg-secondary">{{ employee.workType }}</span>
+                <span class="badge" [ngClass]="getWorkTypeBadgeClass(formatWorkType(employee.workType))">
+                  {{ formatWorkType(employee.workType) }}
+                </span>
               </td>
               <td>
                 <span class="badge" [ngClass]="getStatusBadgeClass(employee.status)">
@@ -111,7 +202,7 @@
                 </div>
               </td>
             </tr>
-            <tr *ngIf="filteredEmployees.length === 0">
+            <tr *ngIf="filteredEmployees.length === 0 && !loading">
               <td colspan="9" class="text-center py-4">
                 <i class="fas fa-users fa-2x text-muted mb-3"></i>
                 <p class="text-muted">No employees found matching your criteria.</p>

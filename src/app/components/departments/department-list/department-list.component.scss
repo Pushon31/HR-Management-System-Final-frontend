@@ -1,0 +1,84 @@
+.card {
+  border: none;
+  border-radius: 10px;
+  
+  .card-header {
+    background-color: #f8f9fc;
+    border-bottom: 1px solid #e3e6f0;
+    border-radius: 10px 10px 0 0 !important;
+    
+    h6 {
+      color: #4e73df;
+    }
+  }
+}
+
+.table {
+  th {
+    border-top: none;
+    font-weight: 600;
+    color: #6e707e;
+    background-color: #f8f9fc;
+  }
+  
+  td {
+    vertical-align: middle;
+  }
+}
+
+.badge {
+  font-size: 0.75em;
+  font-weight: 500;
+}
+
+.btn-group {
+  .btn {
+    border-radius: 4px;
+    margin: 0 2px;
+    
+    &:first-child {
+      margin-left: 0;
+    }
+    
+    &:last-child {
+      margin-right: 0;
+    }
+  }
+}
+
+// Hover effects
+.table-hover tbody tr:hover {
+  background-color: rgba(78, 115, 223, 0.05);
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .btn-group {
+    display: flex;
+    flex-direction: column;
+    
+    .btn {
+      margin: 2px 0;
+      border-radius: 4px;
+    }
+  }
+  
+  .table-responsive {
+    font-size: 0.875rem;
+  }
+}
+
+// Stats cards animation
+.card {
+  transition: transform 0.2s ease-in-out;
+  
+  &:hover {
+    transform: translateY(-2px);
+  }
+}
+
+// Loading animation
+.spinner-border {
+  width: 3rem;
+  height: 3rem;
+}

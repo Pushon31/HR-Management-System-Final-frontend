@@ -1,1 +1,363 @@
-<p>attendance-report works!</p>
+<!-- attendance-report.component.html -->
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Attendance Reports</h1>
+    <div>
+      <button class="btn btn-success mr-2" (click)="exportToPDF()" [disabled]="attendanceData.length === 0">
+        <i class="fas fa-file-pdf mr-2"></i>Export PDF
+      </button>
+      <button class="btn btn-primary" (click)="generateReport()" [disabled]="loading">
+        <i class="fas fa-sync-alt mr-2"></i>Generate Report
+      </button>
+    </div>
+  </div>
+
+  <!-- Report Configuration -->
+  <div class="card shadow mb-4">
+    <div class="card-header py-3">
+      <h6 class="m-0 font-weight-bold text-primary">Report Configuration</h6>
+    </div>
+    <div class="card-body">
+      <form [formGroup]="reportForm">
+        <div class="row">
+          <div class="col-md-3">
+            <div class="form-group">
+              <label for="reportType">Report Type</label>
+              <select class="form-control" id="reportType" formControlName="reportType" (change)="onReportTypeChange()">
+                <option *ngFor="let type of reportTypes" [value]="type.value">{{ type.label }}</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Daily Report Fields -->
+          <div class="col-md-3" *ngIf="reportForm.get('reportType')?.value === 'daily'">
+            <div class="form-group">
+              <label for="reportDate">Report Date</label>
+              <input type="date" class="form-control" id="reportDate" formControlName="reportDate">
+            </div>
+          </div>
+
+          <!-- Monthly Report Fields -->
+          <div class="col-md-2" *ngIf="reportForm.get('reportType')?.value === 'monthly'">
+            <div class="form-group">
+              <label for="month">Month</label>
+              <select class="form-control" id="month" formControlName="month">
+                <option *ngFor="let m of [1,2,3,4,5,6,7,8,9,10,11,12]; let i = index" [value]="m">
+                  {{ ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][i] }}
+                </option>
+              </select>
+            </div>
+          </div>
+          <div class="col-md-2" *ngIf="reportForm.get('reportType')?.value === 'monthly'">
+            <div class="form-group">
+              <label for="year">Year</label>
+              <input type="number" class="form-control" id="year" formControlName="year" min="2020" max="2030">
+            </div>
+          </div>
+
+          <!-- Employee Report Fields -->
+          <div class="col-md-3" *ngIf="reportForm.get('reportType')?.value === 'employee'">
+            <div class="form-group">
+              <label for="employeeId">Employee</label>
+              <select class="form-control" id="employeeId" formControlName="employeeId">
+                <option value="">Select Employee</option>
+                <option *ngFor="let emp of employees" [value]="emp.employeeId">
+                  {{ emp.firstName }} {{ emp.lastName }} ({{ emp.employeeId }})
+                </option>
+              </select>
+            </div>
+          </div>
+          <div class="col-md-2" *ngIf="reportForm.get('reportType')?.value === 'employee'">
+            <div class="form-group">
+              <label for="month">Month</label>
+              <select class="form-control" id="month" formControlName="month">
+                <option *ngFor="let m of [1,2,3,4,5,6,7,8,9,10,11,12]; let i = index" [value]="m">
+                  {{ ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][i] }}
+                </option>
+              </select>
+            </div>
+          </div>
+          <div class="col-md-2" *ngIf="reportForm.get('reportType')?.value === 'employee'">
+            <div class="form-group">
+              <label for="year">Year</label>
+              <input type="number" class="form-control" id="year" formControlName="year" min="2020" max="2030">
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <p class="mt-2">Generating report...</p>
+  </div>
+
+  <!-- Report Content -->
+  <div *ngIf="!loading && attendanceData.length > 0">
+    <!-- Daily Report -->
+    <div *ngIf="reportForm.get('reportType')?.value === 'daily'">
+      <!-- Summary Cards -->
+      <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+          <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+              <div class="row no-gutters align-items-center">
+                <div class="col mr-2">
+                  <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                    Total Employees
+                  </div>
+                  <div class="h5 mb-0 font-weight-bold text-gray-800">
+                    {{ summary.totalEmployees }}
+                  </div>
+                </div>
+                <div class="col-auto">
+                  <i class="fas fa-users fa-2x text-gray-300"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+          <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+              <div class="row no-gutters align-items-center">
+                <div class="col mr-2">
+                  <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                    Present Today
+                  </div>
+                  <div class="h5 mb-0 font-weight-bold text-gray-800">
+                    {{ summary.present }}
+                  </div>
+                </div>
+                <div class="col-auto">
+                  <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+          <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+              <div class="row no-gutters align-items-center">
+                <div class="col mr-2">
+                  <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                    Late Today
+                  </div>
+                  <div class="h5 mb-0 font-weight-bold text-gray-800">
+                    {{ summary.late }}
+                  </div>
+                </div>
+                <div class="col-auto">
+                  <i class="fas fa-clock fa-2x text-gray-300"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+          <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+              <div class="row no-gutters align-items-center">
+                <div class="col mr-2">
+                  <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                    Attendance Rate
+                  </div>
+                  <div class="h5 mb-0 font-weight-bold text-gray-800">
+                    {{ summary.presentPercentage?.toFixed(1) }}%
+                  </div>
+                </div>
+                <div class="col-auto">
+                  <i class="fas fa-percentage fa-2x text-gray-300"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Daily Attendance Table -->
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">
+            Daily Attendance Report - {{ formatDate(reportForm.get('reportDate')?.value) }}
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+              <thead class="thead-light">
+                <tr>
+                  <th>Employee ID</th>
+                  <th>Employee Name</th>
+                  <th>Department</th>
+                  <th>Check-in</th>
+                  <th>Check-out</th>
+                  <th>Status</th>
+                  <th>Remarks</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let record of attendanceData">
+                  <td>{{ record.employeeId }}</td>
+                  <td>{{ record.employeeName }}</td>
+                  <td>{{ record.departmentName }}</td>
+                  <td>
+                    <span class="text-success">
+                      {{ record.checkinTime || 'N/A' }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="text-warning">
+                      {{ record.checkoutTime || 'N/A' }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="badge" [ngClass]="getStatusBadgeClass(record.status)">
+                      {{ record.status }}
+                    </span>
+                  </td>
+                  <td>{{ record.remarks || 'N/A' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Monthly Report -->
+    <div *ngIf="reportForm.get('reportType')?.value === 'monthly'">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">
+            Monthly Attendance Report - {{ ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][reportForm.get('month')?.value - 1] }} {{ reportForm.get('year')?.value }}
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+              <thead class="thead-light">
+                <tr>
+                  <th>Employee ID</th>
+                  <th>Employee Name</th>
+                  <th>Total Present</th>
+                  <th>Total Late</th>
+                  <th>Total Half Day</th>
+                  <th>Total Working Days</th>
+                  <th>Attendance %</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let stat of summary.employeeStats">
+                  <td>{{ stat.employeeId }}</td>
+                  <td>{{ stat.employeeName }}</td>
+                  <td class="text-success">{{ stat.present }}</td>
+                  <td class="text-warning">{{ stat.late }}</td>
+                  <td class="text-info">{{ stat.halfDay }}</td>
+                  <td>{{ stat.totalDays }}</td>
+                  <td>
+                    <span class="font-weight-bold" 
+                          [class.text-success]="(stat.present / summary.totalWorkingDays) >= 0.9"
+                          [class.text-warning]="(stat.present / summary.totalWorkingDays) >= 0.7 && (stat.present / summary.totalWorkingDays) < 0.9"
+                          [class.text-danger]="(stat.present / summary.totalWorkingDays) < 0.7">
+                      {{ ((stat.present / summary.totalWorkingDays) * 100).toFixed(1) }}%
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Employee Report -->
+    <div *ngIf="reportForm.get('reportType')?.value === 'employee'">
+      <div class="row mb-4">
+        <div class="col-md-12">
+          <div class="card bg-light border-left-primary shadow">
+            <div class="card-body">
+              <h5 class="card-title">Employee Summary</h5>
+              <div class="row text-center">
+                <div class="col-md-3">
+                  <h6 class="text-primary">Total Present</h6>
+                  <div class="h4 text-success">{{ summary.totalPresent }}</div>
+                </div>
+                <div class="col-md-3">
+                  <h6 class="text-primary">Total Late</h6>
+                  <div class="h4 text-warning">{{ summary.totalLate }}</div>
+                </div>
+                <div class="col-md-3">
+                  <h6 class="text-primary">Total Half Day</h6>
+                  <div class="h4 text-info">{{ summary.totalHalfDay }}</div>
+                </div>
+                <div class="col-md-3">
+                  <h6 class="text-primary">Attendance Rate</h6>
+                  <div class="h4" [class.text-success]="summary.attendancePercentage >= 90"
+                                [class.text-warning]="summary.attendancePercentage >= 70 && summary.attendancePercentage < 90"
+                                [class.text-danger]="summary.attendancePercentage < 70">
+                    {{ summary.attendancePercentage?.toFixed(1) }}%
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">
+            Employee Attendance Details - {{ summary.employeeName }} ({{ summary.employeeId }})
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+              <thead class="thead-light">
+                <tr>
+                  <th>Date</th>
+                  <th>Check-in</th>
+                  <th>Check-out</th>
+                  <th>Total Hours</th>
+                  <th>Status</th>
+                  <th>Remarks</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let record of attendanceData">
+                  <td>{{ formatDate(record.attendanceDate) }}</td>
+                  <td class="text-success">{{ record.checkinTime || 'N/A' }}</td>
+                  <td class="text-warning">{{ record.checkoutTime || 'N/A' }}</td>
+                  <td class="text-info">{{ record.totalHours ? record.totalHours.toFixed(2) + ' hours' : 'N/A' }}</td>
+                  <td>
+                    <span class="badge" [ngClass]="getStatusBadgeClass(record.status)">
+                      {{ record.status }}
+                    </span>
+                  </td>
+                  <td>{{ record.remarks || 'N/A' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!loading && attendanceData.length === 0" class="text-center py-5">
+    <i class="fas fa-chart-bar fa-3x text-muted mb-3"></i>
+    <h4 class="text-muted">No report data available</h4>
+    <p class="text-muted">Configure your report parameters and generate a report to see data.</p>
+  </div>
+</div>

@@ -1,1 +1,160 @@
-<p>payroll-process works!</p>
+<div class="row">
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+          <i class="fas fa-calculator me-2"></i>Process Payroll
+        </h5>
+        <div>
+          <button class="btn btn-light btn-sm me-2" (click)="showBulkProcess = !showBulkProcess">
+            <i class="fas fa-users me-1"></i>
+            {{ showBulkProcess ? 'Single Process' : 'Bulk Process' }}
+          </button>
+        </div>
+      </div>
+      <div class="card-body">
+
+        <!-- Single Employee Processing -->
+        <div *ngIf="!showBulkProcess">
+          <form [formGroup]="payrollForm" (ngSubmit)="processPayroll()">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label">Pay Period *</label>
+                  <input type="month" class="form-control" formControlName="payPeriod"
+                         [class.is-invalid]="payrollForm.get('payPeriod')?.invalid && payrollForm.get('payPeriod')?.touched">
+                  <div class="invalid-feedback">
+                    Please select a valid pay period
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label">Employee *</label>
+                  <select class="form-select" formControlName="employeeId" (change)="onEmployeeSelect()"
+                          [class.is-invalid]="payrollForm.get('employeeId')?.invalid && payrollForm.get('employeeId')?.touched">
+                    <option value="">Select Employee</option>
+                    <option *ngFor="let structure of salaryStructures" [value]="structure.employeeId">
+                      {{ structure.employeeName }} ({{ structure.employeeCode }})
+                    </option>
+                  </select>
+                  <div class="invalid-feedback">
+                    Please select an employee
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Selected Employee Preview -->
+            <div class="card bg-light mb-3" *ngIf="getSelectedEmployee()">
+              <div class="card-body">
+                <h6 class="card-title">Salary Preview</h6>
+                <div class="row">
+                  <div class="col-md-4">
+                    <strong>Basic Salary:</strong> {{ formatCurrency(getSelectedEmployee()!.basicSalary) }}
+                  </div>
+                  <div class="col-md-4">
+                    <strong>Allowances:</strong> {{ formatCurrency(getSelectedEmployee()!.houseRent + getSelectedEmployee()!.medicalAllowance + getSelectedEmployee()!.transportAllowance + getSelectedEmployee()!.otherAllowances) }}
+                  </div>
+                  <div class="col-md-4">
+                    <strong>Net Salary:</strong> {{ formatCurrency(getSelectedEmployee()!.netSalary) }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Remarks</label>
+              <textarea class="form-control" formControlName="remarks" rows="2"
+                        placeholder="Additional notes or remarks..."></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-success" [disabled]="payrollForm.invalid || isProcessing">
+              <span *ngIf="isProcessing" class="spinner-border spinner-border-sm me-2"></span>
+              <i class="fas fa-calculator me-2"></i>
+              Process Payroll
+            </button>
+          </form>
+        </div>
+
+        <!-- Bulk Processing -->
+        <div *ngIf="showBulkProcess">
+          <div class="mb-3">
+            <label class="form-label">Pay Period *</label>
+            <input type="month" class="form-control" formControlName="payPeriod">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Select Employees ({{ selectedEmployees.length }} selected)</label>
+            <div class="border rounded p-3" style="max-height: 300px; overflow-y: auto;">
+              <div *ngFor="let structure of salaryStructures" class="form-check">
+                <input class="form-check-input" type="checkbox" 
+                       [id]="'emp-' + structure.employeeId"
+                       [checked]="isEmployeeSelected(structure.employeeId)"
+                       (change)="toggleEmployeeSelection(structure.employeeId)">
+                <label class="form-check-label" [for]="'emp-' + structure.employeeId">
+                  {{ structure.employeeName }} ({{ structure.employeeCode }}) - 
+                  {{ formatCurrency(structure.netSalary) }}
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-success" 
+                    (click)="processBulkPayroll()" 
+                    [disabled]="selectedEmployees.length === 0 || isProcessing">
+              <span *ngIf="isProcessing" class="spinner-border spinner-border-sm me-2"></span>
+              <i class="fas fa-calculator me-2"></i>
+              Process {{ selectedEmployees.length }} Employees
+            </button>
+            <button type="button" class="btn btn-outline-secondary" (click)="selectedEmployees = []">
+              Clear Selection
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <!-- Recent Processed Payrolls -->
+    <div class="card">
+      <div class="card-header bg-info text-white">
+        <h6 class="mb-0">
+          <i class="fas fa-history me-2"></i>Recently Processed
+        </h6>
+      </div>
+      <div class="card-body">
+        <div class="list-group list-group-flush">
+          <div *ngFor="let payroll of processedPayrolls.slice(0, 5)" 
+               class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+              <div class="fw-bold">{{ payroll.employeeName }}</div>
+              <small class="text-muted">{{ payroll.payPeriod }}</small>
+            </div>
+            <div class="text-end">
+              <div class="fw-bold text-success">{{ formatCurrency(payroll.netSalary) }}</div>
+              <span [class]="getStatusBadgeClass(payroll.status)" class="badge">
+                {{ payroll.status }}
+              </span>
+            </div>
+          </div>
+          <div *ngIf="processedPayrolls.length === 0" class="list-group-item text-center text-muted">
+            No payrolls processed yet
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Stats -->
+ <div class="col-12">
+  <div class="border rounded p-2 bg-light">
+    <div class="h6 mb-0 text-info">
+      {{ formatCurrency(totalProcessedAmount) }}
+    </div>
+    <small>Total Processed Amount</small>
+  </div>
+</div>
+  </div>
+</div>

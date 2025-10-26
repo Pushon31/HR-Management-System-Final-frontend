@@ -1,0 +1,12 @@
+// leave-balance.component.scss
+.progress {
+  height: 8px;
+}
+
+.card {
+  transition: transform 0.2s;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+}

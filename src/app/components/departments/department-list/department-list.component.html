@@ -1,1 +1,223 @@
-<p>department-list works!</p>
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Department Management</h1>
+    <a routerLink="/admin/departments/add" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
+      <i class="fas fa-plus-circle fa-sm text-white-50 mr-2"></i> Add New Department
+    </a>
+  </div>
+
+  <!-- Stats Cards -->
+  <div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-primary shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                Total Departments
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">{{ departments.length }}</div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-building fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-success shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                Active Departments
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">
+                {{ activeDepartmentsCount }}
+              </div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-info shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                Total Employees
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">
+                {{ totalEmployeesCount }}
+              </div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-users fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+      <div class="card border-left-warning shadow h-100 py-2">
+        <div class="card-body">
+          <div class="row no-gutters align-items-center">
+            <div class="col mr-2">
+              <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                Avg. Employees/Dept
+              </div>
+              <div class="h5 mb-0 font-weight-bold text-gray-800">
+                {{ averageEmployeesPerDept }}
+              </div>
+            </div>
+            <div class="col-auto">
+              <i class="fas fa-chart-bar fa-2x text-gray-300"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters Card -->
+  <div class="card shadow mb-4">
+    <div class="card-header py-3">
+      <h6 class="m-0 font-weight-bold text-primary">Filters</h6>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6">
+          <div class="form-group">
+            <label for="search">Search Departments</label>
+            <input type="text" class="form-control" id="search" 
+                   [(ngModel)]="searchTerm" 
+                   (ngModelChange)="onSearchChange()"
+                   placeholder="Search by name, code, location, head...">
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="form-group">
+            <label for="status">Status Filter</label>
+            <select class="form-control" id="status" 
+                    [(ngModel)]="statusFilter" 
+                    (ngModelChange)="onStatusChange()">
+              <option *ngFor="let option of statusOptions" [value]="option.value">
+                {{ option.label }}
+              </option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Departments Table -->
+  <div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+      <h6 class="m-0 font-weight-bold text-primary">All Departments</h6>
+      <span class="badge bg-primary">{{ filteredDepartments.length }} departments</span>
+    </div>
+    <div class="card-body">
+      <!-- Loading State -->
+      <div *ngIf="loading" class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-2">Loading departments...</p>
+      </div>
+
+      <!-- Departments Table -->
+      <div *ngIf="!loading" class="table-responsive">
+        <table class="table table-bordered table-hover" width="100%" cellspacing="0">
+          <thead class="thead-light">
+            <tr>
+              <th>Code</th>
+              <th>Department Name</th>
+              <th>Location</th>
+              <th>Department Head</th>
+              <th>Employees</th>
+              <th>Budget</th>
+              <th>Status</th>
+              <th>Established</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let department of filteredDepartments">
+              <td>
+                <strong>{{ department.code }}</strong>
+              </td>
+              <td>
+                <div class="font-weight-bold text-primary">{{ department.name }}</div>
+                <small class="text-muted" *ngIf="department.description">
+                  {{ department.description | slice:0:50 }}{{ department.description.length > 50 ? '...' : '' }}
+                </small>
+              </td>
+              <td>{{ department.location || 'Not specified' }}</td>
+              <td>
+                <span *ngIf="department.departmentHeadName" class="badge bg-info">
+                  {{ department.departmentHeadName }}
+                </span>
+                <span *ngIf="!department.departmentHeadName" class="text-muted">
+                  Not assigned
+                </span>
+              </td>
+              <td>
+                <span class="badge" [ngClass]="getEmployeeCountBadgeClass(department.employeeCount || 0)">
+                  {{ department.employeeCount || 0 }} employees
+                </span>
+              </td>
+              <td>
+                <span class="font-weight-bold">{{ formatBudget(department.budget) }}</span>
+              </td>
+              <td>
+                <span class="badge" [ngClass]="getStatusBadgeClass(department.status)">
+                  {{ department.status }}
+                </span>
+              </td>
+              <td>
+                {{ department.establishedDate ? (department.establishedDate | date:'mediumDate') : 'Not set' }}
+              </td>
+              <td>
+                <div class="btn-group btn-group-sm" role="group">
+                  <a [routerLink]="['/admin/departments/edit', department.id]" 
+                     class="btn btn-warning" title="Edit">
+                    <i class="fas fa-edit"></i>
+                  </a>
+                  <button type="button" class="btn btn-info" 
+                          [routerLink]="['/admin/employees']" 
+                          [queryParams]="{ department: department.id }"
+                          title="View Employees">
+                    <i class="fas fa-users"></i>
+                  </button>
+                  <button type="button" class="btn btn-danger" 
+                          (click)="deleteDepartment(department.id)" title="Delete">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="filteredDepartments.length === 0 && !loading">
+              <td colspan="9" class="text-center py-4">
+                <i class="fas fa-building fa-2x text-muted mb-3"></i>
+                <p class="text-muted">No departments found matching your criteria.</p>
+                <a routerLink="/admin/departments/add" class="btn btn-primary">
+                  <i class="fas fa-plus-circle mr-2"></i>Add First Department
+                </a>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

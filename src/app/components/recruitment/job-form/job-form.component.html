@@ -1,1 +1,268 @@
-<p>job-form works!</p>
+<div class="card">
+  <div class="card-header bg-primary text-white">
+    <h5 class="mb-0">
+      <i class="fas fa-briefcase me-2"></i>
+      {{ isEdit ? 'Edit Job Posting' : 'Create New Job Posting' }}
+    </h5>
+  </div>
+  <div class="card-body">
+    <form [formGroup]="jobForm" (ngSubmit)="onSubmit()" novalidate>
+      
+      <!-- Basic Information -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <h6 class="border-bottom pb-2">
+            <i class="fas fa-info-circle me-2"></i>Basic Information
+          </h6>
+        </div>
+        
+        <div class="col-md-6">
+          <div class="mb-3">
+            <label class="form-label">Job Title *</label>
+            <input type="text" class="form-control" formControlName="title" 
+                   placeholder="e.g., Senior Quality Control Manager"
+                   [class.is-invalid]="isFieldInvalid('title')">
+            <div class="invalid-feedback">
+              {{ getFieldError('title') }}
+            </div>
+          </div>
+        </div>
+        
+        <div class="col-md-6">
+          <div class="mb-3">
+            <label class="form-label">Department *</label>
+            <select class="form-select" formControlName="department"
+                    [class.is-invalid]="isFieldInvalid('department')">
+              <option value="">Select Department</option>
+              <option *ngFor="let dept of departments" [value]="dept">{{ dept }}</option>
+            </select>
+            <div class="invalid-feedback">
+              {{ getFieldError('department') }}
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <div class="mb-3">
+            <label class="form-label">Position *</label>
+            <select class="form-select" formControlName="position"
+                    [class.is-invalid]="isFieldInvalid('position')">
+              <option value="">Select Position</option>
+              <option *ngFor="let pos of positions" [value]="pos">{{ pos }}</option>
+            </select>
+            <div class="invalid-feedback">
+              {{ getFieldError('position') }}
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <div class="mb-3">
+            <label class="form-label">Employment Type *</label>
+            <select class="form-select" formControlName="employmentType"
+                    [class.is-invalid]="isFieldInvalid('employmentType')">
+              <option *ngFor="let type of employmentTypes" [value]="type">
+                {{ type.replace('_', ' ') }}
+              </option>
+            </select>
+            <div class="invalid-feedback">
+              {{ getFieldError('employmentType') }}
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <div class="mb-3">
+            <label class="form-label">Location *</label>
+            <select class="form-select" formControlName="location"
+                    [class.is-invalid]="isFieldInvalid('location')">
+              <option *ngFor="let loc of locations" [value]="loc">{{ loc }}</option>
+            </select>
+            <div class="invalid-feedback">
+              {{ getFieldError('location') }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Job Details -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <h6 class="border-bottom pb-2">
+            <i class="fas fa-file-alt me-2"></i>Job Details
+          </h6>
+        </div>
+
+        <div class="col-md-6">
+          <div class="mb-3">
+            <label class="form-label">Experience Required *</label>
+            <input type="text" class="form-control" formControlName="experienceRequired" 
+                   placeholder="e.g., 3-5 years in garment industry"
+                   [class.is-invalid]="isFieldInvalid('experienceRequired')">
+            <div class="invalid-feedback">
+              {{ getFieldError('experienceRequired') }}
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div class="mb-3">
+            <label class="form-label">Education Required</label>
+            <select class="form-select" formControlName="educationRequired">
+              <option value="">Select Education Level</option>
+              <option *ngFor="let edu of educationLevels" [value]="edu">{{ edu }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <div class="mb-3">
+            <label class="form-label">Salary Range *</label>
+            <input type="text" class="form-control" formControlName="salaryRange" 
+                   placeholder="e.g., 25,000 - 35,000 BDT"
+                   [class.is-invalid]="isFieldInvalid('salaryRange')">
+            <div class="invalid-feedback">
+              {{ getFieldError('salaryRange') }}
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <div class="mb-3">
+            <label class="form-label">Vacancy *</label>
+            <input type="number" class="form-control" formControlName="vacancy" min="1"
+                   [class.is-invalid]="isFieldInvalid('vacancy')">
+            <div class="invalid-feedback">
+              {{ getFieldError('vacancy') }}
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <div class="mb-3">
+            <label class="form-label">Application Deadline *</label>
+            <input type="date" class="form-control" formControlName="deadline"
+                   [class.is-invalid]="isFieldInvalid('deadline')">
+            <div class="invalid-feedback">
+              {{ getFieldError('deadline') }}
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12">
+          <div class="mb-3">
+            <label class="form-label">Skills Required</label>
+            <textarea class="form-control" formControlName="skillsRequired" rows="3"
+                      placeholder="List required skills (comma separated)"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Job Description & Requirements -->
+      <div class="row mb-4">
+        <div class="col-md-6">
+          <div class="mb-3">
+            <label class="form-label">Job Description *</label>
+            <textarea class="form-control" formControlName="description" rows="6"
+                      placeholder="Detailed description of job responsibilities..."
+                      [class.is-invalid]="isFieldInvalid('description')"></textarea>
+            <div class="invalid-feedback">
+              {{ getFieldError('description') }}
+            </div>
+            <small class="form-text text-muted">
+              Describe the day-to-day responsibilities of this position
+            </small>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div class="mb-3">
+            <label class="form-label">Requirements *</label>
+            <textarea class="form-control" formControlName="requirements" rows="6"
+                      placeholder="List all job requirements and qualifications..."
+                      [class.is-invalid]="isFieldInvalid('requirements')"></textarea>
+            <div class="invalid-feedback">
+              {{ getFieldError('requirements') }}
+            </div>
+            <small class="form-text text-muted">
+              List the must-have qualifications and requirements
+            </small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Additional Information -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <h6 class="border-bottom pb-2">
+            <i class="fas fa-plus-circle me-2"></i>Additional Information
+          </h6>
+        </div>
+
+        <div class="col-12">
+          <div class="mb-3">
+            <label class="form-label">Benefits & Perks</label>
+            <textarea class="form-control" formControlName="benefits" rows="3"
+                      placeholder="List company benefits, perks, etc."></textarea>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div class="mb-3">
+            <label class="form-label">Contact Email *</label>
+            <input type="email" class="form-control" formControlName="contactEmail"
+                   placeholder="hr@company.com"
+                   [class.is-invalid]="isFieldInvalid('contactEmail')">
+            <div class="invalid-feedback">
+              {{ getFieldError('contactEmail') }}
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div class="mb-3">
+            <label class="form-label">Contact Phone *</label>
+            <input type="tel" class="form-control" formControlName="contactPhone"
+                   placeholder="+880 XXXX-XXXXXX"
+                   [class.is-invalid]="isFieldInvalid('contactPhone')">
+            <div class="invalid-feedback">
+              {{ getFieldError('contactPhone') }}
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div class="mb-3">
+            <label class="form-label">Job Status *</label>
+            <select class="form-select" formControlName="status"
+                    [class.is-invalid]="isFieldInvalid('status')">
+              <option value="OPEN">Open for Applications</option>
+              <option value="CLOSED">Closed</option>
+              <option value="ON_HOLD">On Hold</option>
+            </select>
+            <div class="invalid-feedback">
+              {{ getFieldError('status') }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form Actions -->
+      <div class="d-flex gap-2 pt-3 border-top">
+        <button type="submit" class="btn btn-primary" [disabled]="jobForm.invalid || isLoading">
+          <span *ngIf="isLoading" class="spinner-border spinner-border-sm me-2"></span>
+          <i class="fas fa-save me-2"></i>
+          {{ isEdit ? 'Update Job' : 'Create Job' }}
+        </button>
+        <button type="button" class="btn btn-secondary" routerLink="/recruitment/jobs">
+          <i class="fas fa-times me-2"></i>
+          Cancel
+        </button>
+        <button type="button" class="btn btn-outline-info" (click)="jobForm.reset()">
+          <i class="fas fa-redo me-2"></i>
+          Reset Form
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

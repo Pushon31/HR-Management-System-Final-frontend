@@ -1,1 +1,193 @@
-<p>leave-balance works!</p>
+<!-- leave-balance.component.html -->
+<div class="container-fluid">
+  <!-- Page Header -->
+  <div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <h1 class="h3 mb-0 text-gray-800">Leave Balance</h1>
+    <div class="text-end">
+      <div class="text-lg font-weight-bold text-primary">Year: {{ currentYear }}</div>
+      <button class="btn btn-primary mt-2" routerLink="/employee/leaves/apply">
+        <i class="fas fa-plus mr-2"></i>Apply for Leave
+      </button>
+    </div>
+  </div>
+
+  <!-- Employee Information -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card bg-gradient-info text-white shadow">
+        <div class="card-body">
+          <div class="row align-items-center">
+            <div class="col-md-8">
+              <h4 class="card-title">
+                <i class="fas fa-user-circle mr-2"></i>
+                {{ employeeData?.firstName }} {{ employeeData?.lastName }}
+              </h4>
+              <p class="card-text mb-0">
+                Employee ID: <strong>{{ employeeData?.employeeId }}</strong> | 
+                Department: <strong>{{ employeeData?.departmentName }}</strong> |
+                Designation: <strong>{{ employeeData?.designation }}</strong>
+              </p>
+            </div>
+            <div class="col-md-4 text-center">
+              <i class="fas fa-calendar-alt fa-4x opacity-50"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+      <span class="sr-only">Loading...</span>
+    </div>
+    <p class="mt-2">Loading leave balances...</p>
+  </div>
+
+  <!-- Leave Balance Cards -->
+  <div *ngIf="!loading" class="row">
+    <div *ngFor="let balance of leaveBalances" class="col-xl-4 col-md-6 mb-4">
+      <div class="card border-left-primary shadow h-100">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+          <h6 class="m-0 font-weight-bold text-primary">{{ balance.leaveTypeName }}</h6>
+          <span class="badge badge-primary">{{ balance.leaveTypeCode }}</span>
+        </div>
+        <div class="card-body">
+          <!-- Progress Bar -->
+          <div class="mb-3">
+            <div class="d-flex justify-content-between mb-1">
+              <span class="text-xs font-weight-bold">Usage Progress</span>
+              <span class="text-xs">{{ balance.usedDays }}/{{ balance.totalDays }} days</span>
+            </div>
+            <div class="progress">
+              <div class="progress-bar bg-{{ getProgressColor(balance) }}" 
+                   role="progressbar" 
+                   [style.width]="getProgressPercentage(balance) + '%'"
+                   [attr.aria-valuenow]="getProgressPercentage(balance)" 
+                   aria-valuemin="0" 
+                   aria-valuemax="100">
+              </div>
+            </div>
+          </div>
+
+          <!-- Balance Details -->
+          <div class="row text-center">
+            <div class="col-6 mb-3">
+              <div class="border-right">
+                <h6 class="text-primary">Total Days</h6>
+                <div class="h4 text-success font-weight-bold">{{ balance.totalDays }}</div>
+              </div>
+            </div>
+            <div class="col-6 mb-3">
+              <h6 class="text-primary">Used Days</h6>
+              <div class="h4 text-warning font-weight-bold">{{ balance.usedDays }}</div>
+            </div>
+          </div>
+
+          <div class="row text-center">
+            <div class="col-6">
+              <div class="border-right">
+                <h6 class="text-primary">Carry Forward</h6>
+                <div class="h5 text-info font-weight-bold">{{ balance.carryForwardDays }}</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <h6 class="text-primary">Available</h6>
+              <div class="h4 font-weight-bold" 
+                   [class.text-success]="getAvailableDays(balance) > 0"
+                   [class.text-danger]="getAvailableDays(balance) <= 0">
+                {{ getAvailableDays(balance) }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Low Balance Warning -->
+          <div *ngIf="getAvailableDays(balance) <= 3 && getAvailableDays(balance) > 0" 
+               class="alert alert-warning mt-3 mb-0 py-2">
+            <small>
+              <i class="fas fa-exclamation-triangle mr-1"></i>
+              Low balance remaining
+            </small>
+          </div>
+
+          <div *ngIf="getAvailableDays(balance) <= 0" 
+               class="alert alert-danger mt-3 mb-0 py-2">
+            <small>
+              <i class="fas fa-ban mr-1"></i>
+              No balance available
+            </small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!loading && leaveBalances.length === 0" class="text-center py-5">
+    <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+    <h4 class="text-muted">No Leave Balances Found</h4>
+    <p class="text-muted">Your leave balances for {{ currentYear }} are not available.</p>
+    <button class="btn btn-primary" routerLink="/employee/leaves/apply">
+      <i class="fas fa-plus mr-2"></i>Apply for Leave
+    </button>
+  </div>
+
+  <!-- Summary Statistics -->
+  <div *ngIf="!loading && leaveBalances.length > 0" class="row mt-4">
+    <div class="col-12">
+      <div class="card shadow">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Leave Balance Summary</h6>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+              <thead class="thead-light">
+                <tr>
+                  <th>Leave Type</th>
+                  <th>Code</th>
+                  <th>Total Days</th>
+                  <th>Used Days</th>
+                  <th>Carry Forward</th>
+                  <th>Available Days</th>
+                  <th>Utilization</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let balance of leaveBalances">
+                  <td>
+                    <strong>{{ balance.leaveTypeName }}</strong>
+                  </td>
+                  <td>
+                    <span class="badge badge-primary">{{ balance.leaveTypeCode }}</span>
+                  </td>
+                  <td class="text-success font-weight-bold">{{ balance.totalDays }}</td>
+                  <td class="text-warning font-weight-bold">{{ balance.usedDays }}</td>
+                  <td class="text-info font-weight-bold">{{ balance.carryForwardDays }}</td>
+                  <td [class.text-success]="getAvailableDays(balance) > 0"
+                      [class.text-danger]="getAvailableDays(balance) <= 0"
+                      class="font-weight-bold">
+                    {{ getAvailableDays(balance) }}
+                  </td>
+                  <td>
+                    <div class="progress" style="height: 20px;">
+                      <div class="progress-bar bg-{{ getProgressColor(balance) }}" 
+                           role="progressbar" 
+                           [style.width]="getProgressPercentage(balance) + '%'"
+                           [attr.aria-valuenow]="getProgressPercentage(balance)" 
+                           aria-valuemin="0" 
+                           aria-valuemax="100">
+                        {{ getProgressPercentage(balance).toFixed(1) }}%
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

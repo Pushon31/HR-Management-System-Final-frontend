@@ -1,1 +1,235 @@
-<p>interview-schedule works!</p>
+<div class="card">
+  <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">Interview Schedule</h5>
+    <button class="btn btn-dark btn-sm" (click)="showForm = !showForm">
+      <i class="fas fa-plus"></i> {{ showForm ? 'Cancel' : 'Schedule Interview' }}
+    </button>
+  </div>
+  <div class="card-body">
+
+    <!-- Interview Schedule Form -->
+    <div class="card mb-4" *ngIf="showForm">
+      <div class="card-header bg-light">
+        <h6 class="mb-0">Schedule New Interview</h6>
+      </div>
+      <div class="card-body">
+        <form [formGroup]="interviewForm" (ngSubmit)="onSubmit()">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label">Candidate *</label>
+                <select class="form-select" formControlName="candidateId"
+                        [class.is-invalid]="interviewForm.get('candidateId')?.invalid && interviewForm.get('candidateId')?.touched">
+                  <option value="">Select Candidate</option>
+                  <option *ngFor="let candidate of candidates" [value]="candidate.id">
+                    {{ candidate.firstName }} {{ candidate.lastName }} - {{ candidate.email }}
+                  </option>
+                </select>
+                <div class="invalid-feedback">
+                  Please select a candidate
+                </div>
+                <small class="form-text text-muted" *ngIf="candidates.length === 0">
+                  No shortlisted candidates available. Please shortlist candidates first.
+                </small>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label">Interview Round *</label>
+                <select class="form-select" formControlName="round"
+                        [class.is-invalid]="interviewForm.get('round')?.invalid && interviewForm.get('round')?.touched">
+                  <option value="">Select Round</option>
+                  <option value="First Round">First Round</option>
+                  <option value="Second Round">Second Round</option>
+                  <option value="Final Round">Final Round</option>
+                  <option value="HR Round">HR Round</option>
+                  <option value="Technical Round">Technical Round</option>
+                </select>
+                <div class="invalid-feedback">
+                  Please select interview round
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label">Interview Date *</label>
+                <input type="date" class="form-control" formControlName="interviewDate"
+                       [class.is-invalid]="interviewForm.get('interviewDate')?.invalid && interviewForm.get('interviewDate')?.touched">
+                <div class="invalid-feedback">
+                  Interview date is required
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label">Interview Time *</label>
+                <input type="time" class="form-control" formControlName="interviewTime"
+                       [class.is-invalid]="interviewForm.get('interviewTime')?.invalid && interviewForm.get('interviewTime')?.touched">
+                <div class="invalid-feedback">
+                  Interview time is required
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Interviewers *</label>
+            <input type="text" class="form-control" formControlName="interviewers" 
+                   placeholder="Enter interviewer names (comma separated)"
+                   [class.is-invalid]="interviewForm.get('interviewers')?.invalid && interviewForm.get('interviewers')?.touched">
+            <div class="invalid-feedback">
+              Interviewers are required
+            </div>
+            <small class="form-text text-muted">
+              Separate multiple interviewers with commas
+            </small>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-warning" [disabled]="interviewForm.invalid || isLoading">
+              <span *ngIf="isLoading" class="spinner-border spinner-border-sm me-2"></span>
+              Schedule Interview
+            </button>
+            <button type="button" class="btn btn-secondary" (click)="showForm = false">
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Interviews List -->
+    <div class="table-responsive">
+      <table class="table table-striped table-hover">
+        <thead class="table-dark">
+          <tr>
+            <th>Candidate</th>
+            <th>Interview Round</th>
+            <th>Date & Time</th>
+            <th>Interviewers</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let interview of interviews">
+            <td>
+              <strong>{{ getCandidateName(interview.candidateId) }}</strong>
+              <br>
+              <small class="text-muted">{{ interview.jobTitle }}</small>
+            </td>
+            <td>{{ interview.round }}</td>
+            <td>
+              {{ interview.interviewDate | date:'dd/MM/yyyy' }}
+              <br>
+              <small class="text-muted">{{ interview.interviewTime }}</small>
+            </td>
+            <td>
+              <span class="badge bg-light text-dark">{{ interview.interviewers }}</span>
+            </td>
+            <td>
+              <span [class]="getStatusBadgeClass(interview.status)">
+                {{ interview.status }}
+              </span>
+            </td>
+            <td>
+              <div class="btn-group btn-group-sm">
+                <button class="btn btn-outline-primary" title="Edit Interview">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-outline-success" title="Mark as Completed" 
+                        *ngIf="interview.status === 'SCHEDULED'"
+                        (click)="markAsCompleted(interview.id!)">
+                  <i class="fas fa-check"></i>
+                </button>
+                <button class="btn btn-outline-info" title="Reschedule" 
+                        *ngIf="interview.status === 'SCHEDULED'"
+                        (click)="rescheduleInterview(interview.id!)">
+                  <i class="fas fa-calendar-alt"></i>
+                </button>
+                <button class="btn btn-outline-danger" title="Cancel Interview"
+                        *ngIf="interview.status === 'SCHEDULED'"
+                        (click)="cancelInterview(interview.id!)">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="interviews.length === 0">
+            <td colspan="6" class="text-center text-muted py-4">
+              <i class="fas fa-calendar-times fa-2x mb-3 d-block"></i>
+              No interviews scheduled yet
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mt-4" *ngIf="interviews.length > 0">
+      <div class="col-md-3">
+        <div class="card bg-primary text-white">
+          <div class="card-body">
+            <div class="d-flex justify-content-between">
+              <div>
+                <h4>{{ scheduledCount }}</h4>
+                <p class="mb-0">Scheduled</p>
+              </div>
+              <div class="align-self-center">
+                <i class="fas fa-clock fa-2x"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card bg-success text-white">
+          <div class="card-body">
+            <div class="d-flex justify-content-between">
+              <div>
+                <h4>{{ completedCount }}</h4>
+                <p class="mb-0">Completed</p>
+              </div>
+              <div class="align-self-center">
+                <i class="fas fa-check-circle fa-2x"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card bg-danger text-white">
+          <div class="card-body">
+            <div class="d-flex justify-content-between">
+              <div>
+                <h4>{{ cancelledCount }}</h4>
+                <p class="mb-0">Cancelled</p>
+              </div>
+              <div class="align-self-center">
+                <i class="fas fa-times-circle fa-2x"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card bg-info text-white">
+          <div class="card-body">
+            <div class="d-flex justify-content-between">
+              <div>
+                <h4>{{ rescheduledCount }}</h4>
+                <p class="mb-0">Rescheduled</p>
+              </div>
+              <div class="align-self-center">
+                <i class="fas fa-calendar-alt fa-2x"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

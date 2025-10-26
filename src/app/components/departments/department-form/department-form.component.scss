@@ -1,0 +1,82 @@
+.card {
+  border: none;
+  border-radius: 10px;
+  
+  .card-header {
+    background-color: #f8f9fc;
+    border-bottom: 1px solid #e3e6f0;
+    border-radius: 10px 10px 0 0 !important;
+    
+    h6 {
+      color: #4e73df;
+    }
+  }
+}
+
+.form-label {
+  font-weight: 600;
+  color: #5a5c69;
+}
+
+.form-control {
+  border: 1px solid #d1d3e2;
+  border-radius: 4px;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  
+  &:focus {
+    border-color: #4e73df;
+    box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+  }
+  
+  &.is-invalid {
+    border-color: #e74a3b;
+    
+    &:focus {
+      border-color: #e74a3b;
+      box-shadow: 0 0 0 0.2rem rgba(231, 74, 59, 0.25);
+    }
+  }
+}
+
+.invalid-feedback {
+  display: block;
+}
+
+.btn {
+  border-radius: 4px;
+  font-weight: 500;
+  
+  &:disabled {
+    cursor: not-allowed;
+  }
+}
+
+.alert {
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .d-flex.justify-content-end {
+    justify-content: stretch !important;
+    
+    .btn {
+      flex: 1;
+      margin: 2px;
+    }
+  }
+}
+
+// Loading spinner
+.spinner-border-sm {
+  width: 1rem;
+  height: 1rem;
+}
+
+// Section headers
+h5.text-primary {
+  border-bottom: 2px solid #4e73df;
+  padding-bottom: 0.5rem;
+}
