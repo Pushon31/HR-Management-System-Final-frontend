@@ -1,1 +1,253 @@
-<p>task-form works!</p>
+<!-- src/app/components/tasks/task-form/task-form.component.html -->
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h4 class="card-title mb-0">
+            <i class="fas fa-tasks me-2"></i>
+            {{ isEdit ? 'Edit Task' : 'Create New Task' }}
+          </h4>
+        </div>
+        <div class="card-body">
+          <!-- Loading State -->
+          <div *ngIf="loading" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading task details...</p>
+          </div>
+
+          <!-- Error State -->
+          <div *ngIf="error && !loading" class="alert alert-danger" role="alert">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            {{ error }}
+            <button type="button" class="btn-close float-end" (click)="error = ''"></button>
+          </div>
+
+          <!-- Task Form -->
+          <form *ngIf="!loading" [formGroup]="taskForm" (ngSubmit)="onSubmit()">
+            <div class="row">
+              <div class="col-md-8">
+                <!-- Basic Information -->
+                <div class="card mb-4">
+                  <div class="card-header">
+                    <h5 class="card-title mb-0">
+                      <i class="fas fa-info-circle me-2"></i>
+                      Basic Information
+                    </h5>
+                  </div>
+                  <div class="card-body">
+                    <div class="row g-3">
+                      <div class="col-12">
+                        <label class="form-label">Title *</label>
+                        <input type="text" class="form-control" formControlName="title" 
+                               placeholder="Enter task title"
+                               [class.is-invalid]="f['title'].touched && f['title'].invalid">
+                        <div *ngIf="f['title'].touched && f['title'].invalid" class="invalid-feedback">
+                          <div *ngIf="f['title'].errors?.['required']">Title is required</div>
+                          <div *ngIf="f['title'].errors?.['minlength']">Title must be at least 3 characters</div>
+                          <div *ngIf="f['title'].errors?.['maxlength']">Title cannot exceed 200 characters</div>
+                        </div>
+                      </div>
+
+                      <div class="col-12">
+                        <label class="form-label">Description *</label>
+                        <textarea class="form-control" formControlName="description" 
+                                  rows="4" placeholder="Enter detailed task description"
+                                  [class.is-invalid]="f['description'].touched && f['description'].invalid"></textarea>
+                        <div *ngIf="f['description'].touched && f['description'].invalid" class="invalid-feedback">
+                          <div *ngIf="f['description'].errors?.['required']">Description is required</div>
+                        </div>
+                      </div>
+
+                      <div class="col-md-6">
+                        <label class="form-label">Assigned To *</label>
+                        <select class="form-select" formControlName="assignedToId"
+                                [class.is-invalid]="f['assignedToId'].touched && f['assignedToId'].invalid">
+                          <option value="">Select Employee</option>
+                          <option *ngFor="let employee of employees" [value]="employee.id">
+                            {{ employee.firstName }} {{ employee.lastName }} 
+                            <span *ngIf="employee.departmentName">({{ employee.departmentName }})</span>
+                          </option>
+                        </select>
+                        <div *ngIf="f['assignedToId'].touched && f['assignedToId'].invalid" class="invalid-feedback">
+                          <div *ngIf="f['assignedToId'].errors?.['required']">Please assign to an employee</div>
+                        </div>
+                      </div>
+
+                      <div class="col-md-6">
+                        <label class="form-label">Project</label>
+                        <select class="form-select" formControlName="projectId">
+                          <option value="">No Project</option>
+                          <option *ngFor="let project of projects" [value]="project.id">
+                            {{ project.name }} ({{ project.code }})
+                          </option>
+                        </select>
+                      </div>
+
+                      <div class="col-12">
+                        <label class="form-label">Tags</label>
+                        <input type="text" class="form-control" formControlName="tags" 
+                               placeholder="e.g., urgent, important, follow-up (comma separated)">
+                        <div class="form-text">Separate multiple tags with commas</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-4">
+                <!-- Task Details -->
+                <div class="card mb-4">
+                  <div class="card-header">
+                    <h5 class="card-title mb-0">
+                      <i class="fas fa-cog me-2"></i>
+                      Task Details
+                    </h5>
+                  </div>
+                  <div class="card-body">
+                    <div class="row g-3">
+                      <div class="col-12">
+                        <label class="form-label">Priority *</label>
+                        <select class="form-select" formControlName="priority"
+                                [class.is-invalid]="f['priority'].touched && f['priority'].invalid">
+                          <option *ngFor="let priority of priorities" [value]="priority">
+                            {{ priority }}
+                          </option>
+                        </select>
+                      </div>
+
+                      <div class="col-12">
+                        <label class="form-label">Status *</label>
+                        <select class="form-select" formControlName="status"
+                                (change)="onStatusChange()"
+                                [class.is-invalid]="f['status'].touched && f['status'].invalid">
+                          <option *ngFor="let status of statuses" [value]="status">
+                            {{ status }}
+                          </option>
+                        </select>
+                      </div>
+
+                      <div class="col-12">
+                        <label class="form-label">Start Date</label>
+                        <input type="date" class="form-control" formControlName="startDate"
+                               (change)="validateDates()">
+                      </div>
+
+                      <div class="col-12">
+                        <label class="form-label">Due Date *</label>
+                        <input type="date" class="form-control" formControlName="dueDate"
+                               (change)="validateDates()"
+                               [class.is-invalid]="f['dueDate'].touched && f['dueDate'].invalid">
+                        <div *ngIf="f['dueDate'].touched && f['dueDate'].invalid" class="invalid-feedback">
+                          <div *ngIf="f['dueDate'].errors?.['required']">Due date is required</div>
+                          <div *ngIf="f['dueDate'].errors?.['dateRange']">Due date must be after start date</div>
+                        </div>
+                      </div>
+
+                      <div class="col-md-6">
+                        <label class="form-label">Estimated Hours</label>
+                        <input type="number" class="form-control" formControlName="estimatedHours" 
+                               min="0" max="1000" step="0.5"
+                               [class.is-invalid]="f['estimatedHours'].touched && f['estimatedHours'].invalid">
+                        <div *ngIf="f['estimatedHours'].touched && f['estimatedHours'].invalid" class="invalid-feedback">
+                          <div *ngIf="f['estimatedHours'].errors?.['min']">Must be 0 or more</div>
+                          <div *ngIf="f['estimatedHours'].errors?.['max']">Cannot exceed 1000 hours</div>
+                        </div>
+                      </div>
+
+                      <div class="col-md-6">
+                        <label class="form-label">Actual Hours</label>
+                        <input type="number" class="form-control" formControlName="actualHours" 
+                               min="0" max="1000" step="0.5"
+                               [class.is-invalid]="f['actualHours'].touched && f['actualHours'].invalid">
+                      </div>
+
+                      <div class="col-12" *ngIf="isEdit">
+                        <label class="form-label">Completion Percentage</label>
+                        <input type="range" class="form-range" formControlName="completionPercentage" 
+                               min="0" max="100" step="1"
+                               (input)="onCompletionChange()">
+                        <div class="text-center">
+                          <span class="badge" 
+                                [class]="getCompletionBadgeClass(f['completionPercentage'].value)">
+                            {{ f['completionPercentage'].value }}%
+                          </span>
+                        </div>
+                      </div>
+
+                      <div class="col-12">
+                        <div class="form-check form-switch">
+                          <input class="form-check-input" type="checkbox" formControlName="isUrgent" 
+                                 id="urgentSwitch">
+                          <label class="form-check-label" for="urgentSwitch">
+                            <i class="fas fa-exclamation-triangle text-warning me-1"></i>
+                            Mark as Urgent
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Form Summary -->
+                <div class="card">
+                  <div class="card-header">
+                    <h5 class="card-title mb-0">
+                      <i class="fas fa-list me-2"></i>
+                      Summary
+                    </h5>
+                  </div>
+                  <div class="card-body">
+                    <div class="small text-muted">
+                      <div class="mb-2">
+                        <strong>Assigned To:</strong><br>
+                        {{ getEmployeeName(f['assignedToId'].value) || 'Not assigned' }}
+                      </div>
+                      <div class="mb-2">
+                        <strong>Project:</strong><br>
+                        {{ getProjectName(f['projectId'].value) }}
+                      </div>
+                      <div class="mb-2">
+                        <strong>Priority:</strong><br>
+                        <span [class]="getPriorityBadgeClass(f['priority'].value)">
+                          {{ f['priority'].value }}
+                        </span>
+                      </div>
+                      <div>
+                        <strong>Status:</strong><br>
+                        <span [class]="getStatusBadgeClass(f['status'].value)">
+                          {{ f['status'].value }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="row mt-4">
+              <div class="col-12">
+                <div class="d-flex gap-2 justify-content-end border-top pt-3">
+                  <button type="button" class="btn btn-outline-secondary" 
+                          (click)="onCancel()" [disabled]="submitting">
+                    <i class="fas fa-times me-2"></i>
+                    Cancel
+                  </button>
+                  <button type="submit" class="btn btn-primary" 
+                          [disabled]="taskForm.invalid || submitting">
+                    <span *ngIf="submitting" class="spinner-border spinner-border-sm me-2"></span>
+                    <i class="fas" [class.fa-save]="isEdit" [class.fa-plus]="!isEdit" class="me-2"></i>
+                    {{ isEdit ? 'Update Task' : 'Create Task' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

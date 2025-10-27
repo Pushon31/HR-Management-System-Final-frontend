@@ -1,1 +1,196 @@
-<p>project-form works!</p>
+<!-- src/app/components/tasks/project-form/project-form.component.html -->
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h4 class="card-title mb-0">
+            <i class="fas fa-project-diagram me-2"></i>
+            {{ isEdit ? 'Edit Project' : 'Create New Project' }}
+          </h4>
+        </div>
+        <div class="card-body">
+          <!-- Loading State -->
+          <div *ngIf="loading" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading project details...</p>
+          </div>
+
+          <!-- Error State -->
+          <div *ngIf="error && !loading" class="alert alert-danger" role="alert">
+            {{ error }}
+          </div>
+
+          <!-- Project Form -->
+          <form *ngIf="!loading" [formGroup]="projectForm" (ngSubmit)="onSubmit()">
+            <div class="row">
+              <div class="col-md-8">
+                <!-- Basic Information -->
+                <div class="card mb-4">
+                  <div class="card-header">
+                    <h5 class="card-title mb-0">Basic Information</h5>
+                  </div>
+                  <div class="card-body">
+                    <div class="row g-3">
+                      <div class="col-md-6">
+                        <label class="form-label">Project Name *</label>
+                        <input type="text" class="form-control" formControlName="name" 
+                               placeholder="Enter project name">
+                        <div *ngIf="f['name'].touched && f['name'].invalid" class="text-danger">
+                          <small *ngIf="f['name'].errors?.['required']">Project name is required</small>
+                          <small *ngIf="f['name'].errors?.['minlength']">Name must be at least 3 characters</small>
+                        </div>
+                      </div>
+
+                      <div class="col-md-6">
+                        <label class="form-label">Project Code *</label>
+                        <input type="text" class="form-control" formControlName="code" 
+                               placeholder="e.g., PROJ-001" 
+                               pattern="[A-Z0-9_-]+">
+                        <div *ngIf="f['code'].touched && f['code'].invalid" class="text-danger">
+                          <small *ngIf="f['code'].errors?.['required']">Project code is required</small>
+                          <small *ngIf="f['code'].errors?.['pattern']">Only uppercase letters, numbers, hyphens and underscores allowed</small>
+                        </div>
+                      </div>
+
+                      <div class="col-12">
+                        <label class="form-label">Description *</label>
+                        <textarea class="form-control" formControlName="description" 
+                                  rows="4" placeholder="Enter project description"></textarea>
+                        <div *ngIf="f['description'].touched && f['description'].invalid" class="text-danger">
+                          <small *ngIf="f['description'].errors?.['required']">Description is required</small>
+                        </div>
+                      </div>
+
+                      <div class="col-md-6">
+                        <label class="form-label">Start Date *</label>
+                        <input type="date" class="form-control" formControlName="startDate"
+                               (change)="validateDates()">
+                        <div *ngIf="f['startDate'].touched && f['startDate'].invalid" class="text-danger">
+                          <small *ngIf="f['startDate'].errors?.['required']">Start date is required</small>
+                        </div>
+                      </div>
+
+                      <div class="col-md-6">
+                        <label class="form-label">End Date *</label>
+                        <input type="date" class="form-control" formControlName="endDate"
+                               (change)="validateDates()">
+                        <div *ngIf="f['endDate'].touched && f['endDate'].invalid" class="text-danger">
+                          <small *ngIf="f['endDate'].errors?.['required']">End date is required</small>
+                          <small *ngIf="f['endDate'].errors?.['dateRange']">End date must be after start date</small>
+                        </div>
+                      </div>
+
+                      <div class="col-12">
+                        <label class="form-label">Budget (BDT)</label>
+                        <div class="input-group">
+                          <span class="input-group-text">৳</span>
+                          <input type="number" class="form-control" formControlName="budget" 
+                                 min="0" step="1000" placeholder="Enter project budget">
+                        </div>
+                        <div *ngIf="f['budget'].touched && f['budget'].invalid" class="text-danger">
+                          <small *ngIf="f['budget'].errors?.['min']">Budget must be positive</small>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-4">
+                <!-- Project Details -->
+                <div class="card mb-4">
+                  <div class="card-header">
+                    <h5 class="card-title mb-0">Project Details</h5>
+                  </div>
+                  <div class="card-body">
+                    <div class="row g-3">
+                      <div class="col-12">
+                        <label class="form-label">Department *</label>
+                        <select class="form-select" formControlName="departmentId">
+                          <option value="">Select Department</option>
+                          <option *ngFor="let department of departments" [value]="department.id">
+                            {{ department.name }}
+                          </option>
+                        </select>
+                        <div *ngIf="f['departmentId'].touched && f['departmentId'].invalid" class="text-danger">
+                          <small *ngIf="f['departmentId'].errors?.['required']">Department is required</small>
+                        </div>
+                      </div>
+
+                      <div class="col-12">
+                        <label class="form-label">Project Manager</label>
+                        <select class="form-select" formControlName="projectManagerId">
+                          <option value="">No Manager</option>
+                          <option *ngFor="let employee of employees" [value]="employee.id">
+                            {{ employee.firstName }} {{ employee.lastName }}
+                          </option>
+                        </select>
+                      </div>
+
+                      <div class="col-12">
+                        <label class="form-label">Status *</label>
+                        <select class="form-select" formControlName="status">
+                          <option *ngFor="let status of statuses" [value]="status">
+                            {{ status }}
+                          </option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Form Summary -->
+                <div class="card">
+                  <div class="card-header">
+                    <h5 class="card-title mb-0">Summary</h5>
+                  </div>
+                  <div class="card-body">
+                    <div class="small text-muted">
+                      <div class="mb-2">
+                        <strong>Project Duration:</strong><br>
+                        <span *ngIf="f['startDate'].value && f['endDate'].value">
+                          {{ calculateDuration() }} days
+                        </span>
+                        <span *ngIf="!f['startDate'].value || !f['endDate'].value">
+                          Set dates to see duration
+                        </span>
+                      </div>
+                      <div class="mb-2">
+                        <strong>Budget:</strong><br>
+                        ৳{{ f['budget'].value || 0 | number }}
+                      </div>
+                      <div>
+                        <strong>Department:</strong><br>
+                        {{ getDepartmentName(f['departmentId'].value) || 'Not selected' }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="row">
+              <div class="col-12">
+                <div class="d-flex gap-2 justify-content-end">
+                  <button type="button" class="btn btn-outline-secondary" 
+                          (click)="onCancel()" [disabled]="submitting">
+                    Cancel
+                  </button>
+                  <button type="submit" class="btn btn-primary" 
+                          [disabled]="projectForm.invalid || submitting">
+                    <span *ngIf="submitting" class="spinner-border spinner-border-sm me-2"></span>
+                    {{ isEdit ? 'Update Project' : 'Create Project' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

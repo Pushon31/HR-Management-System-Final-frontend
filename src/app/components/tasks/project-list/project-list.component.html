@@ -1,1 +1,187 @@
-<p>project-list works!</p>
+<!-- src/app/components/tasks/project-list/project-list.component.html -->
+<div class="container-fluid">
+  <div class="row mb-4">
+    <div class="col">
+      <h2 class="h4">Project Management</h2>
+      <p class="text-muted">Manage and track all projects</p>
+    </div>
+    <div class="col-auto">
+      <button class="btn btn-primary" routerLink="/projects/new">
+        <i class="fas fa-plus me-2"></i>Create New Project
+      </button>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label">Status</label>
+          <select class="form-select" [(ngModel)]="statusFilter" (change)="applyFilters()">
+            <option value="">All Statuses</option>
+            <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Search</label>
+          <input type="text" class="form-control" placeholder="Search projects..." 
+                 [(ngModel)]="searchTerm" (input)="applyFilters()">
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+          <button class="btn btn-outline-secondary w-100" (click)="clearFilters()">
+            Clear
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <p class="mt-2">Loading projects...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="alert alert-danger" role="alert">
+    {{ error }}
+  </div>
+
+  <!-- Projects Grid -->
+  <div *ngIf="!loading && !error" class="row">
+    <div class="col-12">
+      <!-- Projects Cards -->
+      <div class="row g-4">
+        <div *ngFor="let project of paginatedProjects" class="col-xl-4 col-lg-6">
+          <div class="card h-100 project-card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <h5 class="card-title mb-0">{{ project.name }}</h5>
+              <span [class]="getStatusClass(project.status)">{{ project.status }}</span>
+            </div>
+            <div class="card-body">
+              <div class="mb-3">
+                <small class="text-muted">Code: {{ project.code }}</small>
+                <p class="mt-2">{{ project.description }}</p>
+              </div>
+
+              <div class="row text-center mb-3">
+                <div class="col-4">
+                  <div class="fw-bold text-primary">{{ project.totalTasks }}</div>
+                  <small class="text-muted">Total Tasks</small>
+                </div>
+                <div class="col-4">
+                  <div class="fw-bold text-success">{{ project.completedTasks }}</div>
+                  <small class="text-muted">Completed</small>
+                </div>
+                <div class="col-4">
+                  <div class="fw-bold text-danger">{{ project.overdueTasks }}</div>
+                  <small class="text-muted">Overdue</small>
+                </div>
+              </div>
+
+              <!-- Progress -->
+              <div class="mb-3">
+                <div class="d-flex justify-content-between mb-1">
+                  <small class="text-muted">Progress</small>
+                  <small [class]="getCompletionRateClass(project.completionRate)" class="fw-bold">
+                    {{ project.completionRate | number:'1.0-0' }}%
+                  </small>
+                </div>
+                <div class="progress" style="height: 6px;">
+                  <div class="progress-bar" 
+                       [class]="getCompletionRateClass(project.completionRate)"
+                       [style.width]="project.completionRate + '%'">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Project Details -->
+              <div class="project-details">
+                <div class="row small text-muted">
+                  <div class="col-6">
+                    <i class="fas fa-user me-1"></i>
+                    {{ project.projectManagerName || 'Unassigned' }}
+                  </div>
+                  <div class="col-6">
+                    <i class="fas fa-building me-1"></i>
+                    {{ project.departmentName }}
+                  </div>
+                </div>
+                <div class="row small text-muted mt-1">
+                  <div class="col-6">
+                    <i class="fas fa-play me-1"></i>
+                    {{ project.startDate | date:'shortDate' }}
+                  </div>
+                  <div class="col-6">
+                    <i class="fas fa-flag me-1"></i>
+                    {{ project.endDate | date:'shortDate' }}
+                  </div>
+                </div>
+                <div class="row small text-muted mt-1">
+                  <div class="col-12">
+                    <i class="fas fa-money-bill me-1"></i>
+                    Budget: ৳{{ project.budget | number }}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="card-footer">
+              <div class="btn-group w-100">
+                <button class="btn btn-outline-primary btn-sm" 
+                        [routerLink]="['/projects', project.id]">
+                  <i class="fas fa-eye"></i>
+                </button>
+                <button class="btn btn-outline-secondary btn-sm" 
+                        [routerLink]="['/projects', project.id, 'edit']">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-outline-success btn-sm" 
+                        (click)="closeProject(project.id)"
+                        [disabled]="project.status === 'COMPLETED'">
+                  <i class="fas fa-check"></i>
+                </button>
+                <button class="btn btn-outline-danger btn-sm" 
+                        (click)="deleteProject(project.id)">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div *ngIf="filteredProjects.length === 0" class="text-center py-5">
+        <i class="fas fa-project-diagram fa-3x text-muted mb-3"></i>
+        <h5>No projects found</h5>
+        <p class="text-muted">No projects match your current filters.</p>
+        <button class="btn btn-primary" (click)="clearFilters()">Clear Filters</button>
+      </div>
+
+      <!-- Pagination -->
+      <div *ngIf="filteredProjects.length > 0" class="d-flex justify-content-between align-items-center mt-4">
+        <div class="text-muted">
+          {{ displayRange }}
+        </div>
+        <nav>
+          <ul class="pagination">
+            <li class="page-item" [class.disabled]="currentPage === 1">
+              <a class="page-link" (click)="onPageChange(currentPage - 1)">Previous</a>
+            </li>
+            <li *ngFor="let page of [].constructor(totalPages); let i = index" 
+                class="page-item" 
+                [class.active]="currentPage === i + 1">
+              <a class="page-link" (click)="onPageChange(i + 1)">{{ i + 1 }}</a>
+            </li>
+            <li class="page-item" [class.disabled]="currentPage === totalPages">
+              <a class="page-link" (click)="onPageChange(currentPage + 1)">Next</a>
+            </li>
+          </ul>
+        </nav>
+      </div>
+    </div>
+  </div>
+</div>

@@ -62,6 +62,10 @@ import { SalaryStructureComponent } from './components/payroll/salary-structure/
 import { PayrollProcessComponent } from './components/payroll/payroll-process/payroll-process.component';
 import { PayslipViewComponent } from './components/payroll/payslip-view/payslip-view.component';
 import { BonusManagementComponent } from './components/payroll/bonus-management/bonus-management.component';
+import { TaskFormComponent } from './components/tasks/task-form/task-form.component';
+import { TaskListComponent } from './components/tasks/task-list/task-list.component';
+import { ProjectListComponent } from './components/tasks/project-list/project-list.component';
+import { ProjectFormComponent } from './components/tasks/project-form/project-form.component';
 
 @NgModule({
   declarations: [
@@ -111,7 +115,15 @@ import { BonusManagementComponent } from './components/payroll/bonus-management/
     SalaryStructureComponent,
     PayrollProcessComponent,
     PayslipViewComponent,
-    BonusManagementComponent
+    BonusManagementComponent,
+
+
+    
+    TaskListComponent,
+    ProjectListComponent,
+    ProjectFormComponent,
+    TaskFormComponent
+
 
 
 
