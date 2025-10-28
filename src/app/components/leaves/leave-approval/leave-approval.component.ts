@@ -1,4 +1,3 @@
-// leave-approval.component.ts
 import { Component, OnInit } from '@angular/core';
 import { AuthService } from '../../../services/auth.service';
 import { LeaveService } from '../../../services/leave.service';
@@ -26,7 +25,34 @@ export class LeaveApprovalComponent implements OnInit {
 
   ngOnInit(): void {
     this.currentUser = this.authService.getCurrentUser();
-    this.loadManagerData();
+    this.loadPendingLeaves();
+  }
+
+  loadPendingLeaves(): void {
+    this.loading = true;
+
+    // ✅ FIX: For Admin users, get ALL pending leaves without manager filtering
+    if (this.authService.hasRole('ROLE_ADMIN')) {
+      this.leaveService.getPendingLeaveApplications().subscribe({
+        next: (leaves: LeaveApplication[]) => {
+          this.pendingLeaves = leaves;
+          this.loading = false;
+        },
+        error: (error: any) => {
+          console.error('Error loading pending leaves:', error);
+          this.loading = false;
+        }
+      });
+    } 
+    // ✅ FIX: For Manager users, try to find their employee record first
+    else if (this.authService.hasRole('ROLE_MANAGER')) {
+      this.loadManagerData();
+    }
+    // ✅ FIX: For regular employees, show empty or redirect
+    else {
+      console.log('User does not have permission to approve leaves');
+      this.loading = false;
+    }
   }
 
   loadManagerData(): void {
@@ -34,67 +60,117 @@ export class LeaveApprovalComponent implements OnInit {
 
     this.loading = true;
     
-    this.employeeService.getEmployeeByEmployeeId(this.currentUser.username).subscribe({
-      next: (employee) => {
-        this.managerData = employee;
-        this.loadPendingLeaves(employee.id);
+    this.employeeService.getAllEmployees().subscribe({
+      next: (employees: Employee[]) => {
+        // ✅ FIX: Better matching logic for manager
+        const currentEmployee = employees.find(emp => {
+          // Try multiple matching strategies
+          return emp.email === this.currentUser.email || 
+                 emp.employeeId === this.currentUser.username ||
+                 (emp.firstName + ' ' + emp.lastName).toLowerCase() === this.currentUser.fullName?.toLowerCase();
+        });
+        
+        if (currentEmployee) {
+          this.managerData = currentEmployee;
+          this.loadPendingLeavesForManager(currentEmployee.id);
+        } else {
+          console.error('Current user not found in employees. User:', this.currentUser);
+          this.loading = false;
+          // Show user-friendly message
+          alert('Your user account is not linked to an employee record. Please contact administrator.');
+        }
       },
-      error: (error) => {
-        console.error('Error loading manager data:', error);
+      error: (error: any) => {
+        console.error('Error loading employees:', error);
         this.loading = false;
       }
     });
   }
 
-  loadPendingLeaves(managerId: number): void {
+  loadPendingLeavesForManager(managerId: number): void {
     this.leaveService.getPendingLeavesForManager(managerId).subscribe({
-      next: (leaves) => {
+      next: (leaves: LeaveApplication[]) => {
         this.pendingLeaves = leaves;
         this.loading = false;
       },
-      error: (error) => {
-        console.error('Error loading pending leaves:', error);
+      error: (error: any) => {
+        console.error('Error loading pending leaves for manager:', error);
         this.loading = false;
       }
     });
   }
 
   approveLeave(leaveId: number, remarks: string = ''): void {
-    if (!this.managerData) return;
-
     this.processing = true;
     
-    this.leaveService.approveLeave(leaveId, this.managerData.id, remarks).subscribe({
-      next: () => {
-        this.processing = false;
-        alert('Leave approved successfully!');
-        this.loadPendingLeaves(this.managerData!.id);
-      },
-      error: (error) => {
-        this.processing = false;
-        console.error('Error approving leave:', error);
-        alert('Error approving leave: ' + (error.error?.message || 'Please try again.'));
-      }
-    });
+    // ✅ FIX: For admin, we don't need manager data
+    if (this.authService.hasRole('ROLE_ADMIN')) {
+      // Use a default approver ID or leave it null for admin
+      const adminApproverId = 1; // You might want to set this differently
+      this.leaveService.approveLeave(leaveId, adminApproverId, remarks).subscribe({
+        next: () => {
+          this.processing = false;
+          alert('Leave approved successfully!');
+          this.loadPendingLeaves();
+        },
+        error: (error: any) => {
+          this.processing = false;
+          console.error('Error approving leave:', error);
+          alert('Error approving leave: ' + (error.error?.message || 'Please try again.'));
+        }
+      });
+    } 
+    // ✅ FIX: For manager, use their employee ID
+    else if (this.managerData) {
+      this.leaveService.approveLeave(leaveId, this.managerData.id, remarks).subscribe({
+        next: () => {
+          this.processing = false;
+          alert('Leave approved successfully!');
+          this.loadPendingLeaves();
+        },
+        error: (error: any) => {
+          this.processing = false;
+          console.error('Error approving leave:', error);
+          alert('Error approving leave: ' + (error.error?.message || 'Please try again.'));
+        }
+      });
+    }
   }
 
   rejectLeave(leaveId: number, remarks: string = ''): void {
-    if (!this.managerData) return;
-
     this.processing = true;
     
-    this.leaveService.rejectLeave(leaveId, this.managerData.id, remarks).subscribe({
-      next: () => {
-        this.processing = false;
-        alert('Leave rejected successfully!');
-        this.loadPendingLeaves(this.managerData!.id);
-      },
-      error: (error) => {
-        this.processing = false;
-        console.error('Error rejecting leave:', error);
-        alert('Error rejecting leave: ' + (error.error?.message || 'Please try again.'));
-      }
-    });
+    // ✅ FIX: For admin, we don't need manager data
+    if (this.authService.hasRole('ROLE_ADMIN')) {
+      const adminApproverId = 1;
+      this.leaveService.rejectLeave(leaveId, adminApproverId, remarks).subscribe({
+        next: () => {
+          this.processing = false;
+          alert('Leave rejected successfully!');
+          this.loadPendingLeaves();
+        },
+        error: (error: any) => {
+          this.processing = false;
+          console.error('Error rejecting leave:', error);
+          alert('Error rejecting leave: ' + (error.error?.message || 'Please try again.'));
+        }
+      });
+    } 
+    // ✅ FIX: For manager, use their employee ID
+    else if (this.managerData) {
+      this.leaveService.rejectLeave(leaveId, this.managerData.id, remarks).subscribe({
+        next: () => {
+          this.processing = false;
+          alert('Leave rejected successfully!');
+          this.loadPendingLeaves();
+        },
+        error: (error: any) => {
+          this.processing = false;
+          console.error('Error rejecting leave:', error);
+          alert('Error rejecting leave: ' + (error.error?.message || 'Please try again.'));
+        }
+      });
+    }
   }
 
   formatDate(dateString: string): string {
@@ -103,11 +179,26 @@ export class LeaveApprovalComponent implements OnInit {
 
   getStatusBadgeClass(status: LeaveStatus): string {
     const statusClasses: { [key: string]: string } = {
-      'PENDING': 'badge-warning',
-      'APPROVED': 'badge-success',
-      'REJECTED': 'badge-danger',
-      'CANCELLED': 'badge-secondary'
+      'PENDING': 'badge bg-warning',
+      'APPROVED': 'badge bg-success',
+      'REJECTED': 'badge bg-danger',
+      'CANCELLED': 'badge bg-secondary'
     };
-    return `badge ${statusClasses[status] || 'badge-secondary'}`;
+    return statusClasses[status] || 'badge bg-secondary';
+  }
+
+  // ✅ ADD: Check if user can approve leaves
+  canApproveLeaves(): boolean {
+    return this.authService.hasRole('ROLE_ADMIN') || this.authService.hasRole('ROLE_MANAGER');
+  }
+
+  // ✅ ADD: Get approver name for display
+  getApproverName(): string {
+    if (this.authService.hasRole('ROLE_ADMIN')) {
+      return 'Administrator';
+    } else if (this.managerData) {
+      return `${this.managerData.firstName} ${this.managerData.lastName}`;
+    }
+    return 'Unknown';
   }
 }

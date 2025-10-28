@@ -1,19 +1,29 @@
 import { Injectable } from '@angular/core';
 import { HttpRequest, HttpHandler, HttpEvent, HttpInterceptor, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError, BehaviorSubject } from 'rxjs';
-import { catchError, filter, take, switchMap } from 'rxjs/operators';
+import { catchError, filter, take, switchMap } from 'rxjs/operators'; // ✅ Added missing imports
 import { AuthService } from '../services/auth.service';
+import { Router } from '@angular/router';
 
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
   private isRefreshing = false;
   private refreshTokenSubject: BehaviorSubject<any> = new BehaviorSubject<any>(null);
 
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private router: Router
+  ) {}
 
   intercept(request: HttpRequest<unknown>, next: HttpHandler): Observable<HttpEvent<unknown>> {
     // Add auth header with jwt token if available
     const token = this.authService.getToken();
+    
+    // Skip auth for login and signup requests
+    if (request.url.includes('/auth/signin') || request.url.includes('/auth/signup')) {
+      return next.handle(request);
+    }
+
     if (token) {
       request = this.addToken(request, token);
     }
@@ -41,10 +51,10 @@ export class AuthInterceptor implements HttpInterceptor {
       this.isRefreshing = true;
       this.refreshTokenSubject.next(null);
 
-      // Try to refresh token - you'll need to implement refresh token in your backend
-      // For now, we'll just logout the user
+      // For now, just logout the user since we don't have refresh token implemented
       this.authService.logout();
-      return throwError(() => new Error('Session expired'));
+      this.router.navigate(['/login']);
+      return throwError(() => new Error('Session expired. Please login again.'));
     }
 
     return this.refreshTokenSubject.pipe(

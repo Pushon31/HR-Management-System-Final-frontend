@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { BehaviorSubject, Observable, tap } from 'rxjs';
+import { BehaviorSubject, Observable, throwError } from 'rxjs'; // ✅ Added throwError
+import { tap, catchError, map } from 'rxjs/operators'; // ✅ Added catchError and map
 import { Router } from '@angular/router';
 
 export interface LoginRequest {
@@ -66,15 +67,31 @@ export class AuthService {
             roles: response.roles,
             token: response.token
           };
-          this.setCurrentUser(user);
+          this.setCurrentUser(user); // ✅ This will be fixed below
         })
       );
   }
 
   signup(signupData: SignupRequest): Observable<any> {
-    return this.http.post(`${this.apiUrl}/signup`, signupData);
+    return this.http.post(`${this.apiUrl}/signup`, signupData)
+      .pipe(
+        catchError(error => { // ✅ Now catchError is available
+          console.error('Signup error:', error);
+          
+          let errorMessage = 'Registration failed. Please try again.';
+          
+          if (error.error && error.error.message) {
+            errorMessage = error.error.message;
+          } else if (error.message) {
+            errorMessage = error.message;
+          }
+          
+          return throwError(() => new Error(errorMessage)); // ✅ Now throwError is available
+        })
+      );
   }
 
+  // ✅ ADD THE MISSING setCurrentUser METHOD
   private setCurrentUser(user: User): void {
     // Store user data in localStorage
     localStorage.setItem('currentUser', JSON.stringify(user));
@@ -90,26 +107,25 @@ export class AuthService {
     return localStorage.getItem('token');
   }
 
-// In auth.service.ts - Fix the isLoggedIn method
-isLoggedIn(): boolean {
-  const token = this.getToken();
-  if (!token) return false;
+  isLoggedIn(): boolean {
+    const token = this.getToken();
+    if (!token) return false;
 
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    const isExpired = payload.exp < (Date.now() / 1000);
-    
-    if (isExpired) {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const isExpired = payload.exp < (Date.now() / 1000);
+      
+      if (isExpired) {
+        this.logout();
+        return false;
+      }
+      
+      return true;
+    } catch (e) {
       this.logout();
       return false;
     }
-    
-    return true;
-  } catch (e) {
-    this.logout();
-    return false;
   }
-}
 
   logout(): void {
     // Remove user data from localStorage

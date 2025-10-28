@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { catchError, Observable, of } from 'rxjs';
 import { Employee, EmployeeType, EmployeeStatus, EmployeeWorkType } from '../models/employee.model';
 
 @Injectable({
@@ -13,8 +13,19 @@ export class EmployeeService {
 
   // Create new employee
   createEmployee(employee: Employee): Observable<Employee> {
-    return this.http.post<Employee>(this.apiUrl, employee);
-  }
+  return this.http.post<Employee>(this.apiUrl, employee).pipe(
+    catchError((error: any) => {
+      console.error('Error creating employee:', error);
+      if (error.status === 401) {
+        // Redirect to login or show message
+        alert('Your session has expired. Please login again.');
+        // You can also redirect to login page
+        // this.router.navigate(['/login']);
+      }
+      throw error;
+    })
+  );
+}
 
   // Get all employees
   getAllEmployees(): Observable<Employee[]> {
@@ -67,7 +78,17 @@ export class EmployeeService {
   }
 
   // Get work type statistics
-  getWorkTypeStats(): Observable<Map<EmployeeWorkType, number>> {
-    return this.http.get<Map<EmployeeWorkType, number>>(`${this.apiUrl}/worktype/stats`);
-  }
+getWorkTypeStats(): Observable<any> {  // Changed from Map<EmployeeWorkType, number> to any
+  return this.http.get<any>(`${this.apiUrl}/worktype/stats`).pipe(
+    catchError((error: any) => {
+      console.error('Error loading work type stats:', error);
+      // Return a default object instead of Map
+      return of({
+        'ONSITE': 0,
+        'REMOTE': 0,
+        'HYBRID': 0
+      });
+    })
+  );
+}
 }

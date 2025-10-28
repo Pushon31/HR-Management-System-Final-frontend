@@ -29,21 +29,32 @@ export class JobListComponent implements OnInit {
     this.isLoading = true;
     this.errorMessage = '';
     
+    // ✅ FIX: Use existing getJobs method (not getAllJobs)
     this.recruitmentService.getJobs().subscribe({
-      next: (jobs) => {
+      next: (jobs: Job[]) => {
         this.jobs = jobs;
         this.filteredJobs = jobs;
         this.isLoading = false;
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error loading jobs:', error);
-        this.errorMessage = 'Failed to load jobs. Please check your authentication.';
-        this.isLoading = false;
         
-        // If unauthorized, redirect to login
-        if (error.message.includes('Unauthorized') || error.message.includes('401')) {
-          this.router.navigate(['/login']);
+        // ✅ FIX: Better error handling
+        if (error.status === 401) {
+          this.errorMessage = 'Authentication failed. Please login again.';
+          setTimeout(() => {
+            this.router.navigate(['/login']);
+          }, 2000);
+        } else if (error.status === 404) {
+          this.errorMessage = 'Jobs endpoint not found. Please check backend configuration.';
+          // Show empty state
+          this.jobs = [];
+          this.filteredJobs = [];
+        } else {
+          this.errorMessage = 'Failed to load jobs. Please try again later.';
         }
+        
+        this.isLoading = false;
       }
     });
   }
@@ -63,7 +74,7 @@ export class JobListComponent implements OnInit {
         next: () => {
           this.loadJobs();
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('Error deleting job:', error);
           alert('Error deleting job. Please try again.');
         }
@@ -78,5 +89,18 @@ export class JobListComponent implements OnInit {
       case 'ON_HOLD': return 'badge bg-warning';
       default: return 'badge bg-secondary';
     }
+  }
+
+  // ✅ ADD: Clear search
+  clearSearch(): void {
+    this.searchTerm = '';
+    this.applyFilters();
+  }
+
+  // ✅ ADD: Reset filters
+  resetFilters(): void {
+    this.searchTerm = '';
+    this.statusFilter = 'ALL';
+    this.applyFilters();
   }
 }

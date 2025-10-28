@@ -45,10 +45,8 @@ export class SignupComponent {
     }
   }
 
-  // Convenience getter for easy access to form fields
   get f() { return this.signupForm.controls; }
 
-  // Custom validator for password match
   passwordMatchValidator(form: FormGroup) {
     const password = form.get('password');
     const confirmPassword = form.get('confirmPassword');
@@ -65,8 +63,8 @@ export class SignupComponent {
     this.error = '';
     this.success = '';
 
-    // Stop here if form is invalid
     if (this.signupForm.invalid) {
+      this.scrollToFirstError();
       return;
     }
 
@@ -80,10 +78,16 @@ export class SignupComponent {
       roles: this.f['roles'].value
     };
 
+    console.log('Sending signup request:', signupData);
+
     this.authService.signup(signupData).subscribe({
       next: (response) => {
         this.loading = false;
-        this.success = 'Account created successfully! Redirecting to login...';
+        console.log('Signup successful response:', response);
+        
+        // Handle JSON response
+        const message = response.message || 'Account created successfully!';
+        this.success = message;
         
         // Redirect to login after 2 seconds
         setTimeout(() => {
@@ -91,8 +95,17 @@ export class SignupComponent {
         }, 2000);
       },
       error: (error) => {
-        this.error = error.error?.message || 'Registration failed. Please try again.';
         this.loading = false;
+        console.error('Signup error response:', error);
+        
+        // Enhanced error handling for JSON responses
+        if (error instanceof Error) {
+          this.error = error.message;
+        } else {
+          this.error = 'Registration failed. Please try again.';
+        }
+
+        this.scrollToTop();
       }
     });
   }
@@ -101,12 +114,10 @@ export class SignupComponent {
     const roles = this.f['roles'].value as string[];
     
     if (event.target.checked) {
-      // Add role if checked
       if (!roles.includes(role)) {
         roles.push(role);
       }
     } else {
-      // Remove role if unchecked
       const index = roles.indexOf(role);
       if (index > -1) {
         roles.splice(index, 1);
@@ -116,8 +127,37 @@ export class SignupComponent {
     this.f['roles'].setValue(roles);
   }
 
+  private scrollToFirstError(): void {
+    const firstErrorElement = document.querySelector('.is-invalid');
+    if (firstErrorElement) {
+      firstErrorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+
+  private scrollToTop(): void {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   private redirectToDashboard(): void {
     const baseRoute = this.authService.getBaseRoute();
     this.router.navigate([`/${baseRoute}/dashboard`]);
+  }
+
+  // Debug method
+  testSignup(): void {
+    const testData: SignupRequest = {
+      username: 'testuser' + Date.now(),
+      email: 'test' + Date.now() + '@example.com',
+      fullName: 'Test User',
+      password: 'password123',
+      roles: ['ROLE_EMPLOYEE']
+    };
+
+    console.log('Testing signup with:', testData);
+    
+    this.authService.signup(testData).subscribe({
+      next: (response) => console.log('✅ Test Success:', response),
+      error: (error) => console.log('❌ Test Error:', error)
+    });
   }
 }

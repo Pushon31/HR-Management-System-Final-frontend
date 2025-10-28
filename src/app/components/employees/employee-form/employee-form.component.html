@@ -1,1 +1,262 @@
-<p>employee-form works!</p>
+<div class="container-fluid py-4">
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header bg-primary text-white">
+          <h4 class="mb-0">
+            <i class="fas fa-user me-2"></i>
+            {{ isEditMode ? 'Edit Employee' : 'Add New Employee' }}
+          </h4>
+        </div>
+        <div class="card-body">
+          <!-- Loading Spinner -->
+          <div *ngIf="isLoading" class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Loading employee data...</p>
+          </div>
+
+          <!-- Employee Form -->
+          <form *ngIf="!isLoading" [formGroup]="employeeForm" (ngSubmit)="onSubmit()">
+            
+            <!-- Personal Information Section -->
+            <div class="row mb-4">
+              <div class="col-12">
+                <h5 class="border-bottom pb-2 text-primary">
+                  <i class="fas fa-id-card me-2"></i>Personal Information
+                </h5>
+              </div>
+              
+              <div class="col-md-6 mb-3">
+                <label for="firstName" class="form-label">First Name *</label>
+                <input type="text" class="form-control" id="firstName" formControlName="firstName"
+                       [class.is-invalid]="isFieldInvalid('firstName')">
+                <div class="invalid-feedback" *ngIf="isFieldInvalid('firstName')">
+                  {{ getFieldError('firstName') }}
+                </div>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label for="lastName" class="form-label">Last Name *</label>
+                <input type="text" class="form-control" id="lastName" formControlName="lastName"
+                       [class.is-invalid]="isFieldInvalid('lastName')">
+                <div class="invalid-feedback" *ngIf="isFieldInvalid('lastName')">
+                  {{ getFieldError('lastName') }}
+                </div>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label for="employeeId" class="form-label">Employee ID *</label>
+                <input type="text" class="form-control" id="employeeId" formControlName="employeeId"
+                       [class.is-invalid]="isFieldInvalid('employeeId')">
+                <div class="invalid-feedback" *ngIf="isFieldInvalid('employeeId')">
+                  {{ getFieldError('employeeId') }}
+                </div>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label for="email" class="form-label">Email *</label>
+                <input type="email" class="form-control" id="email" formControlName="email"
+                       [class.is-invalid]="isFieldInvalid('email')">
+                <div class="invalid-feedback" *ngIf="isFieldInvalid('email')">
+                  {{ getFieldError('email') }}
+                </div>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label for="nidNumber" class="form-label">NID Number</label>
+                <input type="text" class="form-control" id="nidNumber" formControlName="nidNumber"
+                       [class.is-invalid]="isFieldInvalid('nidNumber')">
+                <div class="invalid-feedback" *ngIf="isFieldInvalid('nidNumber')">
+                  {{ getFieldError('nidNumber') }}
+                </div>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label for="bankAccountNumber" class="form-label">Bank Account Number</label>
+                <input type="text" class="form-control" id="bankAccountNumber" formControlName="bankAccountNumber"
+                       [class.is-invalid]="isFieldInvalid('bankAccountNumber')">
+                <div class="invalid-feedback" *ngIf="isFieldInvalid('bankAccountNumber')">
+                  {{ getFieldError('bankAccountNumber') }}
+                </div>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label for="gender" class="form-label">Gender *</label>
+                <select class="form-select" id="gender" formControlName="gender"
+                        [class.is-invalid]="isFieldInvalid('gender')">
+                  <option value="">Select Gender</option>
+                  <option *ngFor="let gender of genders" [value]="gender">{{ gender }}</option>
+                </select>
+                <div class="invalid-feedback" *ngIf="isFieldInvalid('gender')">
+                  {{ getFieldError('gender') }}
+                </div>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label for="maritalStatus" class="form-label">Marital Status</label>
+                <select class="form-select" id="maritalStatus" formControlName="maritalStatus">
+                  <option value="">Select Marital Status</option>
+                  <option *ngFor="let status of maritalStatuses" [value]="status">{{ status }}</option>
+                </select>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label for="birthDate" class="form-label">Birth Date</label>
+                <input type="date" class="form-control" id="birthDate" formControlName="birthDate">
+              </div>
+            </div>
+
+            <!-- Employment Information Section -->
+            <div class="row mb-4">
+              <div class="col-12">
+                <h5 class="border-bottom pb-2 text-primary">
+                  <i class="fas fa-briefcase me-2"></i>Employment Information
+                </h5>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label for="departmentId" class="form-label">Department</label>
+                <select class="form-select" id="departmentId" formControlName="departmentId">
+                  <option value="">Select Department</option>
+                  <option *ngFor="let dept of departments" [value]="dept.id">{{ dept.name }}</option>
+                </select>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label for="designation" class="form-label">Designation</label>
+                <input type="text" class="form-control" id="designation" formControlName="designation"
+                       [class.is-invalid]="isFieldInvalid('designation')">
+                <div class="invalid-feedback" *ngIf="isFieldInvalid('designation')">
+                  {{ getFieldError('designation') }}
+                </div>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label for="employeeType" class="form-label">Employee Type *</label>
+                <select class="form-select" id="employeeType" formControlName="employeeType"
+                        [class.is-invalid]="isFieldInvalid('employeeType')">
+                  <option value="">Select Employee Type</option>
+                  <option *ngFor="let type of employeeTypes" [value]="type">{{ type }}</option>
+                </select>
+                <div class="invalid-feedback" *ngIf="isFieldInvalid('employeeType')">
+                  {{ getFieldError('employeeType') }}
+                </div>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label for="workType" class="form-label">Work Type *</label>
+                <select class="form-select" id="workType" formControlName="workType"
+                        [class.is-invalid]="isFieldInvalid('workType')">
+                  <option value="">Select Work Type</option>
+                  <option *ngFor="let workType of workTypes" [value]="workType">{{ workType }}</option>
+                </select>
+                <div class="invalid-feedback" *ngIf="isFieldInvalid('workType')">
+                  {{ getFieldError('workType') }}
+                </div>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label for="status" class="form-label">Status *</label>
+                <select class="form-select" id="status" formControlName="status"
+                        [class.is-invalid]="isFieldInvalid('status')">
+                  <option *ngFor="let status of employeeStatuses" [value]="status">{{ status }}</option>
+                </select>
+                <div class="invalid-feedback" *ngIf="isFieldInvalid('status')">
+                  {{ getFieldError('status') }}
+                </div>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label for="joinDate" class="form-label">Join Date</label>
+                <input type="date" class="form-control" id="joinDate" formControlName="joinDate">
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label for="shift" class="form-label">Shift</label>
+                <input type="text" class="form-control" id="shift" formControlName="shift"
+                       [class.is-invalid]="isFieldInvalid('shift')">
+                <div class="invalid-feedback" *ngIf="isFieldInvalid('shift')">
+                  {{ getFieldError('shift') }}
+                </div>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label for="basicSalary" class="form-label">Basic Salary (BDT)</label>
+                <input type="number" class="form-control" id="basicSalary" formControlName="basicSalary"
+                       min="0" step="0.01"
+                       [class.is-invalid]="isFieldInvalid('basicSalary')">
+                <div class="invalid-feedback" *ngIf="isFieldInvalid('basicSalary')">
+                  {{ getFieldError('basicSalary') }}
+                </div>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label for="managerId" class="form-label">Manager</label>
+                <select class="form-select" id="managerId" formControlName="managerId">
+                  <option value="">Select Manager</option>
+                  <option *ngFor="let manager of managers" [value]="manager.id">
+                    {{ manager.firstName }} {{ manager.lastName }} ({{ manager.employeeId }})
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Contact Information Section -->
+            <div class="row mb-4">
+              <div class="col-12">
+                <h5 class="border-bottom pb-2 text-primary">
+                  <i class="fas fa-address-book me-2"></i>Contact Information
+                </h5>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label for="phoneNumber" class="form-label">Phone Number</label>
+                <input type="text" class="form-control" id="phoneNumber" formControlName="phoneNumber"
+                       [class.is-invalid]="isFieldInvalid('phoneNumber')">
+                <div class="invalid-feedback" *ngIf="isFieldInvalid('phoneNumber')">
+                  {{ getFieldError('phoneNumber') }}
+                </div>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label for="emergencyContact" class="form-label">Emergency Contact</label>
+                <input type="text" class="form-control" id="emergencyContact" formControlName="emergencyContact"
+                       [class.is-invalid]="isFieldInvalid('emergencyContact')">
+                <div class="invalid-feedback" *ngIf="isFieldInvalid('emergencyContact')">
+                  {{ getFieldError('emergencyContact') }}
+                </div>
+              </div>
+
+              <div class="col-12 mb-3">
+                <label for="address" class="form-label">Address</label>
+                <textarea class="form-control" id="address" formControlName="address" rows="3"
+                          [class.is-invalid]="isFieldInvalid('address')"></textarea>
+                <div class="invalid-feedback" *ngIf="isFieldInvalid('address')">
+                  {{ getFieldError('address') }}
+                </div>
+              </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="row">
+              <div class="col-12">
+                <div class="d-flex justify-content-end gap-2">
+                  <button type="button" class="btn btn-secondary" (click)="onCancel()">
+                    <i class="fas fa-times me-1"></i>Cancel
+                  </button>
+                  <button type="submit" class="btn btn-primary" [disabled]="employeeForm.invalid || isLoading">
+                    <i class="fas fa-save me-1"></i>
+                    {{ isEditMode ? 'Update Employee' : 'Create Employee' }}
+                    <span *ngIf="isLoading" class="spinner-border spinner-border-sm ms-1"></span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
