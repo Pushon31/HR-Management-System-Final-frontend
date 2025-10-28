@@ -1,3 +1,4 @@
+// src/app/services/recruitment.service.ts
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
@@ -12,15 +13,12 @@ export class RecruitmentService {
 
   constructor(private http: HttpClient) {}
 
-  // Handle errors
   private handleError(error: HttpErrorResponse) {
     let errorMessage = 'Unknown error occurred';
     
     if (error.error instanceof ErrorEvent) {
-      // Client-side error
       errorMessage = `Error: ${error.error.message}`;
     } else {
-      // Server-side error
       errorMessage = `Error Code: ${error.status}\nMessage: ${error.message}`;
     }
     
@@ -28,33 +26,33 @@ export class RecruitmentService {
     return throwError(() => new Error(errorMessage));
   }
 
-  // Job methods
+  // ✅ FIXED: Job endpoints - match backend exactly
   getJobs(): Observable<Job[]> {
-    return this.http.get<Job[]>(`${this.apiUrl}/jobs`)
+    return this.http.get<Job[]>(`${this.apiUrl}/job-postings`)
       .pipe(catchError(this.handleError));
   }
 
   getJob(id: number): Observable<Job> {
-    return this.http.get<Job>(`${this.apiUrl}/jobs/${id}`)
+    return this.http.get<Job>(`${this.apiUrl}/job-postings/${id}`)
       .pipe(catchError(this.handleError));
   }
 
   createJob(job: Job): Observable<Job> {
-    return this.http.post<Job>(`${this.apiUrl}/jobs`, job)
+    return this.http.post<Job>(`${this.apiUrl}/job-postings`, job)
       .pipe(catchError(this.handleError));
   }
 
   updateJob(id: number, job: Job): Observable<Job> {
-    return this.http.put<Job>(`${this.apiUrl}/jobs/${id}`, job)
+    return this.http.put<Job>(`${this.apiUrl}/job-postings/${id}`, job)
       .pipe(catchError(this.handleError));
   }
 
   deleteJob(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/jobs/${id}`)
+    return this.http.delete<void>(`${this.apiUrl}/job-postings/${id}`)
       .pipe(catchError(this.handleError));
   }
 
-  // Candidate methods
+  // ✅ Candidate endpoints - already correct
   getCandidates(): Observable<Candidate[]> {
     return this.http.get<Candidate[]>(`${this.apiUrl}/candidates`)
       .pipe(catchError(this.handleError));
@@ -80,7 +78,7 @@ export class RecruitmentService {
       .pipe(catchError(this.handleError));
   }
 
-  // Interview methods
+  // ✅ Interview endpoints - already correct
   getInterviews(): Observable<Interview[]> {
     return this.http.get<Interview[]>(`${this.apiUrl}/interviews`)
       .pipe(catchError(this.handleError));
@@ -98,6 +96,12 @@ export class RecruitmentService {
 
   updateInterviewStatus(id: number, status: string): Observable<Interview> {
     return this.http.patch<Interview>(`${this.apiUrl}/interviews/${id}/status`, { status })
+      .pipe(catchError(this.handleError));
+  }
+
+  // ✅ ADD: Get active jobs only
+  getActiveJobs(): Observable<Job[]> {
+    return this.http.get<Job[]>(`${this.apiUrl}/job-postings/active`)
       .pipe(catchError(this.handleError));
   }
 }

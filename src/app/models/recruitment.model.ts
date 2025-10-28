@@ -1,68 +1,71 @@
+// src/app/models/recruitment.model.ts
+
 export interface Job {
   id?: number;
+  // ✅ Backend compatible properties
+  jobCode: string;
   title: string;
   department: string;
-  position: string;
   description: string;
   requirements: string;
-  experienceRequired: string;
+  experienceLevel: string;
+  employmentType: string;
+  location: string;
   salaryRange: string;
-  vacancy: number;
+  applicationDeadline: string;
   status: 'OPEN' | 'CLOSED' | 'ON_HOLD';
   postedDate: string;
-  deadline: string;
-  createdBy?: string;
-  // New fields for complete job posting
-  location?: string;
-  employmentType?: string; // FULL_TIME, PART_TIME, CONTRACT
-  educationRequired?: string;
-  skillsRequired?: string;
-  benefits?: string;
-  contactEmail?: string;
-  contactPhone?: string;
+  closedDate?: string;
+  vacancies: number;
+  skillsRequired: string[];
+  
+  // ✅ Frontend display properties (optional)
+  position?: string; // For backward compatibility
+  deadline?: string; // Alias for applicationDeadline
 }
 
 export interface Candidate {
   id?: number;
-  jobId: number;
-  jobTitle?: string;
   firstName: string;
   lastName: string;
   email: string;
   phone: string;
-  address: string;
-  qualification: string;
-  experience: string;
-  currentSalary?: string;
-  expectedSalary: string;
-  resumePath?: string;
-  status: 'APPLIED' | 'SHORTLISTED' | 'REJECTED' | 'SELECTED' | 'INTERVIEW_SCHEDULED';
+  resumeUrl: string;
+  skills: string[];
+  experience: number;
+  currentCompany?: string;
+  currentPosition?: string;
+  expectedSalary: number;
+  // ✅ FIXED: Include all possible status values
+  status: 'APPLIED' | 'SHORTLISTED' | 'REJECTED' | 'HIRED' | 'INTERVIEW_SCHEDULED' | 'SELECTED';
   appliedDate: string;
-  notes?: string;
-  // New fields
-  dateOfBirth?: string;
-  gender?: string;
-  education?: string;
-  skills?: string;
-  coverLetter?: string;
+  jobId: number;
+  jobTitle?: string;
+  address?: string;
+  qualification?: string;
 }
 
 export interface Interview {
   id?: number;
+  // ✅ Backend compatible properties
   candidateId: number;
-  candidateName?: string;
   jobId: number;
-  jobTitle?: string;
+  interviewerId: number;
   interviewDate: string;
   interviewTime: string;
-  interviewers: string;
-  round: string;
+  interviewType: string;
   status: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED' | 'RESCHEDULED';
   feedback?: string;
   rating?: number;
-  createdBy?: string;
-  // New fields
+  notes?: string;
+  
+  // ✅ Frontend display properties
+  candidateName?: string;
+  jobTitle?: string;
+  round?: string;
+  interviewers?: string;
+  
+  // ✅ Optional additional fields
   venue?: string;
   duration?: string;
-  interviewType?: string; // IN_PERSON, PHONE, VIDEO
 }

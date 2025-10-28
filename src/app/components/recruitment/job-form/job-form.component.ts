@@ -16,12 +16,12 @@ export class JobFormComponent implements OnInit {
   isLoading = false;
 
   departments = [
-    'Production', 'Quality Control', 'Design', 'Merchandising', 
+    'Production', 'Quality Control', 'Design', 'Merchandising',
     'HR', 'Finance', 'IT', 'Marketing', 'Sales', 'Supply Chain'
   ];
-  
+
   positions = [
-    'Manager', 'Supervisor', 'Senior Executive', 'Executive', 
+    'Manager', 'Supervisor', 'Senior Executive', 'Executive',
     'Operator', 'Quality Inspector', 'Designer', 'Merchandiser',
     'Technician', 'Assistant'
   ];
@@ -96,8 +96,7 @@ export class JobFormComponent implements OnInit {
           // Format date for input field
           const formattedJob = {
             ...job,
-            deadline: new Date(job.deadline).toISOString().split('T')[0]
-          };
+applicationDeadline: job.applicationDeadline ? new Date(job.applicationDeadline).toISOString().split('T')[0] : ''          };
           this.jobForm.patchValue(formattedJob);
         },
         error: (error) => {
@@ -111,7 +110,7 @@ export class JobFormComponent implements OnInit {
   onSubmit(): void {
     if (this.jobForm.valid) {
       this.isLoading = true;
-      
+
       const jobData: Job = {
         ...this.jobForm.value,
         postedDate: new Date().toISOString()

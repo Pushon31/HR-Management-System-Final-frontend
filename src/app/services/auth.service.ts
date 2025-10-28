@@ -135,21 +135,26 @@ export class AuthService {
     this.router.navigate(['/login']);
   }
 
-  hasRole(role: string): boolean {
-    const user = this.getCurrentUser();
-    return user ? user.roles.includes(role) : false;
-  }
+ hasRole(role: string): boolean {
+  const user = this.getCurrentUser();
+  if (!user) return false;
+  
+  // ✅ FIX: Handle both with and without ROLE_ prefix
+  const normalizedRole = role.startsWith('ROLE_') ? role : `ROLE_${role}`;
+  return user.roles.includes(normalizedRole);
+}
 
-  getBaseRoute(): string {
-    const user = this.getCurrentUser();
-    if (!user) return 'login';
+ getBaseRoute(): string {
+  const user = this.getCurrentUser();
+  if (!user) return 'login';
 
-    if (this.hasRole('ROLE_ADMIN')) {
-      return 'admin';
-    } else if (this.hasRole('ROLE_MANAGER') || this.hasRole('ROLE_HR') || this.hasRole('ROLE_ACCOUNTANT')) {
-      return 'manager';
-    } else {
-      return 'employee';
-    }
+  // ✅ FIX: Use normalized role checking
+  if (this.hasRole('ADMIN')) {
+    return 'admin';
+  } else if (this.hasRole('MANAGER') || this.hasRole('HR') || this.hasRole('ACCOUNTANT')) {
+    return 'manager';
+  } else {
+    return 'employee';
   }
+}
 }
