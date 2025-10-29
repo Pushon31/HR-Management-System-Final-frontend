@@ -14,29 +14,27 @@ export class RoleGuard implements CanActivate {
   ) {}
 
   canActivate(route: ActivatedRouteSnapshot): boolean {
-    const expectedRoles = route.data['roles'] as Array<string>;
-    const currentUser = this.authService.getCurrentUser();
+  const expectedRoles = route.data['roles'] as Array<string>;
+  const currentUser = this.authService.getCurrentUser();
 
-    if (!currentUser) {
-      this.router.navigate(['/login']);
-      return false;
-    }
-
-    // ✅ FIX: Remove ROLE_ prefix for comparison with backend
-    const userRoles = currentUser.roles.map(role => 
-      role.replace('ROLE_', '')
-    );
-
-    const hasRequiredRole = expectedRoles.some(role => 
-      userRoles.includes(role.replace('ROLE_', ''))
-    );
-
-    if (!hasRequiredRole) {
-      console.warn('Access denied. Required roles:', expectedRoles, 'User roles:', currentUser.roles);
-      this.router.navigate(['/access-denied']);
-      return false;
-    }
-
-    return true;
+  if (!currentUser) {
+    this.router.navigate(['/login']);
+    return false;
   }
+
+  // ✅ FIX: Use roles exactly as they come from backend (with ROLE_ prefix)
+  const userRoles = currentUser.roles;
+
+  const hasRequiredRole = expectedRoles.some(role => 
+    userRoles.includes(role)
+  );
+
+  if (!hasRequiredRole) {
+    console.warn('Access denied. Required roles:', expectedRoles, 'User roles:', currentUser.roles);
+    this.router.navigate(['/access-denied']);
+    return false;
+  }
+
+  return true;
+}
 }

@@ -1,0 +1,189 @@
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="mb-1">{{ isEditMode ? 'Edit User' : 'Create New User' }}</h2>
+      <p class="text-muted mb-0">
+        {{ isEditMode ? 'Update user information and roles' : 'Add a new user to the system' }}
+      </p>
+    </div>
+    <button type="button" class="btn btn-outline-secondary" (click)="onCancel()">
+      <i class="fas fa-arrow-left me-2"></i>Back to Users
+    </button>
+  </div>
+
+  <!-- Error Alert -->
+  <div *ngIf="error" class="alert alert-danger alert-dismissible fade show" role="alert">
+    <i class="fas fa-exclamation-circle me-2"></i>
+    {{ error }}
+    <button type="button" class="btn-close" (click)="error = ''"></button>
+  </div>
+
+  <!-- Loading Spinner -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <p class="mt-2">Loading user data...</p>
+  </div>
+
+  <!-- User Form -->
+  <div *ngIf="!loading" class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card shadow">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-user me-2"></i>
+            {{ isEditMode ? 'Edit User' : 'New User Information' }}
+          </h5>
+        </div>
+        <div class="card-body">
+          <form [formGroup]="userForm" (ngSubmit)="onSubmit()">
+            <div class="row">
+              <!-- Basic Information -->
+              <div class="col-md-6">
+                <h6 class="border-bottom pb-2 mb-3">Basic Information</h6>
+                
+                <!-- Username -->
+                <div class="mb-3">
+                  <label for="username" class="form-label">Username *</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="username"
+                    formControlName="username"
+                    placeholder="Enter username"
+                    [class.is-invalid]="f['username'].invalid && f['username'].touched">
+                  <div class="invalid-feedback" *ngIf="f['username'].errors?.['required']">
+                    Username is required
+                  </div>
+                  <div class="invalid-feedback" *ngIf="f['username'].errors?.['minlength']">
+                    Username must be at least 3 characters
+                  </div>
+                </div>
+
+                <!-- Email -->
+                <div class="mb-3">
+                  <label for="email" class="form-label">Email Address *</label>
+                  <input
+                    type="email"
+                    class="form-control"
+                    id="email"
+                    formControlName="email"
+                    placeholder="Enter email address"
+                    [class.is-invalid]="f['email'].invalid && f['email'].touched">
+                  <div class="invalid-feedback" *ngIf="f['email'].errors?.['required']">
+                    Email is required
+                  </div>
+                  <div class="invalid-feedback" *ngIf="f['email'].errors?.['email']">
+                    Please enter a valid email address
+                  </div>
+                </div>
+
+                <!-- Full Name -->
+                <div class="mb-3">
+                  <label for="fullName" class="form-label">Full Name *</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="fullName"
+                    formControlName="fullName"
+                    placeholder="Enter full name"
+                    [class.is-invalid]="f['fullName'].invalid && f['fullName'].touched">
+                  <div class="invalid-feedback" *ngIf="f['fullName'].errors?.['required']">
+                    Full name is required
+                  </div>
+                </div>
+              </div>
+
+              <!-- Security & Roles -->
+              <div class="col-md-6">
+                <h6 class="border-bottom pb-2 mb-3">Security & Roles</h6>
+                
+                <!-- Password -->
+                <div class="mb-3">
+                  <label for="password" class="form-label">
+                    Password {{ isEditMode ? '' : '*' }}
+                  </label>
+                  <input
+                    type="password"
+                    class="form-control"
+                    id="password"
+                    formControlName="password"
+                    [placeholder]="isEditMode ? 'Leave blank to keep current password' : 'Enter password'"
+                    [class.is-invalid]="f['password'].invalid && f['password'].touched">
+                  <div class="invalid-feedback" *ngIf="!isEditMode && f['password'].errors?.['required']">
+                    Password is required
+                  </div>
+                  <div class="invalid-feedback" *ngIf="f['password'].errors?.['minlength']">
+                    Password must be at least 6 characters
+                  </div>
+                  <div class="form-text" *ngIf="isEditMode">
+                    Leave password field blank to keep the current password
+                  </div>
+                </div>
+
+                <!-- Employee ID -->
+                <div class="mb-4">
+                  <label for="employeeId" class="form-label">Employee ID</label>
+                  <input
+                    type="number"
+                    class="form-control"
+                    id="employeeId"
+                    formControlName="employeeId"
+                    placeholder="Optional - link to employee record">
+                  <div class="form-text">
+                    Link this user to an existing employee record (optional)
+                  </div>
+                </div>
+
+                <!-- Roles -->
+                <div class="mb-3">
+                  <label class="form-label">System Roles *</label>
+                  <div class="border rounded p-3">
+                    <div *ngFor="let role of availableRoles" class="form-check mb-2">
+                      <input
+                        class="form-check-input"
+                        type="checkbox"
+                        [id]="'role-' + role"
+                        [checked]="isRoleSelected(role)"
+                        (change)="toggleRole(role)">
+                      <label class="form-check-label" [for]="'role-' + role">
+                        <strong>{{ roleDisplayNames[role] }}</strong>
+                        <small class="d-block text-muted">
+                          {{ role.replace('ROLE_', '').toLowerCase() }}@garment.com
+                        </small>
+                      </label>
+                    </div>
+                    <div class="invalid-feedback d-block" *ngIf="f['roles'].invalid && f['roles'].touched">
+                      At least one role must be selected
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="row mt-4">
+              <div class="col-12">
+                <div class="d-flex justify-content-end gap-2">
+                  <button type="button" class="btn btn-outline-secondary" (click)="onCancel()">
+                    Cancel
+                  </button>
+                  <button 
+                    type="submit" 
+                    class="btn btn-primary"
+                    [disabled]="submitting || userForm.invalid">
+                    <span *ngIf="submitting" class="spinner-border spinner-border-sm me-2"></span>
+                    <i class="fas" [ngClass]="isEditMode ? 'fa-save' : 'fa-user-plus'"></i>
+                    {{ submitting ? 'Saving...' : (isEditMode ? 'Update User' : 'Create User') }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

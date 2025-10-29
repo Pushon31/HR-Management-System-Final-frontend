@@ -8,7 +8,6 @@ import { RoleGuard } from './guards/role.guard';
 // ==================== AUTH COMPONENTS ====================
 import { LoginComponent } from './components/auth/login/login.component';
 import { ForgotPasswordComponent } from './components/auth/forgot-password/forgot-password.component';
-import { SignupComponent } from './components/auth/signup/signup.component';
 
 // ==================== LAYOUT COMPONENTS ====================
 import { DashboardLayoutComponent } from './components/layout/dashboard-layout/dashboard-layout.component';
@@ -17,6 +16,10 @@ import { DashboardLayoutComponent } from './components/layout/dashboard-layout/d
 import { AdminDashboardComponent } from './components/dashboard/admin-dashboard/admin-dashboard.component';
 import { ManagerDashboardComponent } from './components/dashboard/manager-dashboard/manager-dashboard.component';
 import { EmployeeDashboardComponent } from './components/dashboard/employee-dashboard/employee-dashboard.component';
+
+// ==================== ADMIN USER MANAGEMENT ====================
+import { UserListComponent } from './components/admin/user-list/user-list.component';
+import { UserFormComponent } from './components/admin/user-form/user-form.component';
 
 // ==================== EMPLOYEE MANAGEMENT ====================
 import { EmployeeListComponent } from './components/employees/employee-list/employee-list.component';
@@ -76,11 +79,6 @@ const routes: Routes = [
     data: { title: 'Login - Garment Management System' }
   },
   { 
-    path: 'signup', 
-    component: SignupComponent,
-    data: { title: 'Sign Up - Garment Management System' }
-  },
-  { 
     path: 'forgot-password', 
     component: ForgotPasswordComponent,
     data: { title: 'Forgot Password' }
@@ -101,6 +99,23 @@ const routes: Routes = [
         path: 'dashboard', 
         component: AdminDashboardComponent,
         data: { title: 'Admin Dashboard' }
+      },
+      
+      // 👥 USER MANAGEMENT - NEWLY ADDED
+      { 
+        path: 'users', 
+        component: UserListComponent,
+        data: { title: 'User Management' }
+      },
+      { 
+        path: 'users/add', 
+        component: UserFormComponent,
+        data: { title: 'Add New User' }
+      },
+      { 
+        path: 'users/edit/:id', 
+        component: UserFormComponent,
+        data: { title: 'Edit User' }
       },
       
       // Employee Management

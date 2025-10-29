@@ -1,0 +1,40 @@
+.card {
+  .card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+  }
+}
+
+.form-check {
+  .form-check-label {
+    cursor: pointer;
+    
+    strong {
+      color: #495057;
+    }
+    
+    small {
+      font-size: 0.75rem;
+    }
+  }
+}
+
+.invalid-feedback {
+  display: block;
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .card-body {
+    padding: 1rem;
+  }
+  
+  .btn {
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+  
+  .d-flex.justify-content-end {
+    flex-direction: column;
+  }
+}

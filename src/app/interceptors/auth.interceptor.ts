@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpRequest, HttpHandler, HttpEvent, HttpInterceptor, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError, BehaviorSubject } from 'rxjs';
-import { catchError, filter, take, switchMap } from 'rxjs/operators'; // ✅ Added missing imports
+import { catchError, filter, take, switchMap } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
 import { Router } from '@angular/router';
 
@@ -16,6 +16,11 @@ export class AuthInterceptor implements HttpInterceptor {
   ) {}
 
   intercept(request: HttpRequest<unknown>, next: HttpHandler): Observable<HttpEvent<unknown>> {
+    // ✅ FIX: Check if user is logged in first
+    if (!this.authService.isLoggedIn()) {
+      return next.handle(request);
+    }
+
     // Add auth header with jwt token if available
     const token = this.authService.getToken();
     
@@ -24,12 +29,15 @@ export class AuthInterceptor implements HttpInterceptor {
       return next.handle(request);
     }
 
-    if (token) {
+    // ✅ FIX: Always add token if user is logged in
+    if (token && this.authService.isLoggedIn()) {
       request = this.addToken(request, token);
     }
 
     return next.handle(request).pipe(
       catchError((error: HttpErrorResponse) => {
+        console.log('AuthInterceptor: HTTP Error', error.status, error.url);
+        
         if (error.status === 401) {
           return this.handle401Error(request, next);
         }
@@ -39,6 +47,7 @@ export class AuthInterceptor implements HttpInterceptor {
   }
 
   private addToken(request: HttpRequest<any>, token: string) {
+    console.log('AuthInterceptor: Adding token to request', request.url);
     return request.clone({
       setHeaders: {
         Authorization: `Bearer ${token}`
@@ -51,6 +60,8 @@ export class AuthInterceptor implements HttpInterceptor {
       this.isRefreshing = true;
       this.refreshTokenSubject.next(null);
 
+      console.log('AuthInterceptor: 401 Unauthorized - Logging out');
+      
       // For now, just logout the user since we don't have refresh token implemented
       this.authService.logout();
       this.router.navigate(['/login']);

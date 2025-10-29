@@ -9,7 +9,6 @@ import { AppComponent } from './app.component';
 
 // Auth Components
 import { LoginComponent } from './components/auth/login/login.component';
-import { SignupComponent } from './components/auth/signup/signup.component';
 import { ForgotPasswordComponent } from './components/auth/forgot-password/forgot-password.component';
 
 // Layout Components
@@ -66,6 +65,8 @@ import { TaskFormComponent } from './components/tasks/task-form/task-form.compon
 import { TaskListComponent } from './components/tasks/task-list/task-list.component';
 import { ProjectListComponent } from './components/tasks/project-list/project-list.component';
 import { ProjectFormComponent } from './components/tasks/project-form/project-form.component';
+import { UserListComponent } from './components/admin/user-list/user-list.component';
+import { UserFormComponent } from './components/admin/user-form/user-form.component';
 
 @NgModule({
   declarations: [
@@ -73,7 +74,7 @@ import { ProjectFormComponent } from './components/tasks/project-form/project-fo
     
     // Auth Components
     LoginComponent,
-    SignupComponent,
+  
     ForgotPasswordComponent,
     
     // Layout Components
@@ -122,7 +123,9 @@ import { ProjectFormComponent } from './components/tasks/project-form/project-fo
     TaskListComponent,
     ProjectListComponent,
     ProjectFormComponent,
-    TaskFormComponent
+    TaskFormComponent,
+    UserListComponent,
+    UserFormComponent
 
 
 
