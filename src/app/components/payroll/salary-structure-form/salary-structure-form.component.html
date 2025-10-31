@@ -1,0 +1,195 @@
+<!-- salary-structure-form.component.html -->
+<div class="card">
+  <div class="card-header bg-primary text-white">
+    <h5 class="mb-0">
+      <i class="fas fa-money-bill-wave me-2"></i>
+      {{ isEditMode ? 'Edit Salary Structure' : 'Add Salary Structure' }}
+    </h5>
+  </div>
+  <div class="card-body">
+    
+    <!-- Loading Spinner -->
+    <div *ngIf="isLoading" class="text-center py-4">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <p class="mt-2">Loading employees from database...</p>
+    </div>
+
+    <!-- Form -->
+    <form [formGroup]="salaryForm" (ngSubmit)="onSubmit()" *ngIf="!isLoading && employees.length > 0">
+      <div class="row">
+        <div class="col-md-6">
+          <div class="mb-3">
+            <label class="form-label">Employee *</label>
+            <select class="form-select" formControlName="employeeId" (change)="onEmployeeSelect($event)"
+                    [class.is-invalid]="salaryForm.get('employeeId')?.invalid && salaryForm.get('employeeId')?.touched">
+              <option value="">Select Employee</option>
+              <option *ngFor="let emp of employees" [value]="emp.id">
+                {{ emp.firstName }} {{ emp.lastName }} ({{ emp.employeeId }})
+                <span *ngIf="emp.departmentName">- {{ emp.departmentName }}</span>
+                <span *ngIf="emp.designation">- {{ emp.designation }}</span>
+                <span *ngIf="emp.basicSalary">- Current: {{ formatCurrency(emp.basicSalary) }}</span>
+              </option>
+            </select>
+            <div class="invalid-feedback">
+              Please select an employee
+            </div>
+            <small class="text-muted" *ngIf="employees.length > 0">
+              {{ employees.length }} employees loaded from database
+            </small>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="mb-3">
+            <label class="form-label">Designation *</label>
+            <select class="form-select" formControlName="designation"
+                    [class.is-invalid]="salaryForm.get('designation')?.invalid && salaryForm.get('designation')?.touched">
+              <option value="">Select Designation</option>
+              <option *ngFor="let desig of designations" [value]="desig">
+                {{ desig }}
+              </option>
+            </select>
+            <div class="invalid-feedback">
+              Please select designation
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-4">
+          <div class="mb-3">
+            <label class="form-label">Employee Name *</label>
+            <input type="text" class="form-control" formControlName="employeeName" readonly>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="mb-3">
+            <label class="form-label">Employee Code *</label>
+            <input type="text" class="form-control" formControlName="employeeCode" readonly>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="mb-3">
+            <label class="form-label">Department *</label>
+            <input type="text" class="form-control" formControlName="departmentName" readonly>
+          </div>
+        </div>
+      </div>
+
+      <h6 class="border-bottom pb-2 mt-4">Salary Components</h6>
+      
+      <div class="row">
+        <div class="col-md-4">
+          <div class="mb-3">
+            <label class="form-label">Basic Salary (BDT) *</label>
+            <input type="number" class="form-control" formControlName="basicSalary" min="0" step="0.01"
+                   [class.is-invalid]="salaryForm.get('basicSalary')?.invalid && salaryForm.get('basicSalary')?.touched">
+            <div class="invalid-feedback">
+              Please enter basic salary
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="mb-3">
+            <label class="form-label">House Rent (BDT) *</label>
+            <input type="number" class="form-control" formControlName="houseRent" min="0" step="0.01">
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="mb-3">
+            <label class="form-label">Medical Allowance (BDT) *</label>
+            <input type="number" class="form-control" formControlName="medicalAllowance" min="0" step="0.01">
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-4">
+          <div class="mb-3">
+            <label class="form-label">Transport Allowance (BDT) *</label>
+            <input type="number" class="form-control" formControlName="transportAllowance" min="0" step="0.01">
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="mb-3">
+            <label class="form-label">Other Allowances (BDT) *</label>
+            <input type="number" class="form-control" formControlName="otherAllowances" min="0" step="0.01">
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="mb-3">
+            <label class="form-label">Status *</label>
+            <select class="form-select" formControlName="status">
+              <option value="ACTIVE">Active</option>
+              <option value="INACTIVE">Inactive</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <h6 class="border-bottom pb-2 mt-4">Deductions</h6>
+
+      <div class="row">
+        <div class="col-md-4">
+          <div class="mb-3">
+            <label class="form-label">Income Tax (BDT) *</label>
+            <input type="number" class="form-control" formControlName="incomeTax" min="0" step="0.01">
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="mb-3">
+            <label class="form-label">Provident Fund (BDT) *</label>
+            <input type="number" class="form-control" formControlName="providentFund" min="0" step="0.01">
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="mb-3">
+            <label class="form-label">Other Deductions (BDT) *</label>
+            <input type="number" class="form-control" formControlName="otherDeductions" min="0" step="0.01">
+          </div>
+        </div>
+      </div>
+
+      <!-- Salary Summary -->
+      <div class="card bg-light mt-3">
+        <div class="card-body">
+          <h6 class="card-title">Salary Summary</h6>
+          <div class="row">
+            <div class="col-md-4">
+              <strong>Total Allowances:</strong> {{ formatCurrency(salaryForm.get('houseRent')?.value + salaryForm.get('medicalAllowance')?.value + salaryForm.get('transportAllowance')?.value + salaryForm.get('otherAllowances')?.value) }}
+            </div>
+            <div class="col-md-4">
+              <strong>Total Deductions:</strong> {{ formatCurrency(salaryForm.get('incomeTax')?.value + salaryForm.get('providentFund')?.value + salaryForm.get('otherDeductions')?.value) }}
+            </div>
+            <div class="col-md-4">
+              <strong>Net Salary:</strong> {{ formatCurrency(calculateNetSalary()) }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form Actions -->
+      <div class="d-flex gap-2 mt-4">
+        <button type="submit" class="btn btn-primary" [disabled]="salaryForm.invalid || isSubmitting">
+          <span *ngIf="isSubmitting" class="spinner-border spinner-border-sm me-2"></span>
+          <i class="fas fa-save me-2"></i>
+          {{ isEditMode ? 'Update' : 'Create' }} Salary Structure
+        </button>
+        <button type="button" class="btn btn-secondary" routerLink="/admin/payroll/structures">
+          Cancel
+        </button>
+      </div>
+    </form>
+
+    <!-- No Employees Found -->
+    <div *ngIf="employees.length === 0 && !isLoading" class="text-center py-4">
+      <i class="fas fa-users fa-2x text-muted mb-3"></i>
+      <p>No employees found in the system</p>
+      <a routerLink="/admin/employees/add" class="btn btn-primary btn-sm">
+        Add Employees First
+      </a>
+    </div>
+  </div>
+</div>

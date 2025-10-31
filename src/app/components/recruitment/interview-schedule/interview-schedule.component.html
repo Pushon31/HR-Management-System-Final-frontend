@@ -7,6 +7,23 @@
   </div>
   <div class="card-body">
 
+    <!-- Loading State -->
+    <div *ngIf="isLoading && interviews.length === 0" class="text-center py-4">
+      <div class="spinner-border text-warning" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <p class="mt-2">Loading interviews...</p>
+    </div>
+
+    <!-- Error Message -->
+    <div *ngIf="errorMessage && !isLoading" class="alert alert-danger" role="alert">
+      <i class="fas fa-exclamation-triangle me-2"></i>
+      {{ errorMessage }}
+      <button class="btn btn-sm btn-outline-danger ms-3" (click)="loadInterviews()">
+        <i class="fas fa-redo me-1"></i> Retry
+      </button>
+    </div>
+
     <!-- Interview Schedule Form -->
     <div class="card mb-4" *ngIf="showForm">
       <div class="card-header bg-light">
@@ -19,13 +36,13 @@
               <div class="mb-3">
                 <label class="form-label">Candidate *</label>
                 <select class="form-select" formControlName="candidateId"
-                        [class.is-invalid]="interviewForm.get('candidateId')?.invalid && interviewForm.get('candidateId')?.touched">
+                        [class.is-invalid]="isFieldInvalid('candidateId')">
                   <option value="">Select Candidate</option>
                   <option *ngFor="let candidate of candidates" [value]="candidate.id">
                     {{ candidate.firstName }} {{ candidate.lastName }} - {{ candidate.email }}
                   </option>
                 </select>
-                <div class="invalid-feedback">
+                <div class="invalid-feedback" *ngIf="isFieldInvalid('candidateId')">
                   Please select a candidate
                 </div>
                 <small class="form-text text-muted" *ngIf="candidates.length === 0">
@@ -35,9 +52,27 @@
             </div>
             <div class="col-md-6">
               <div class="mb-3">
+                <label class="form-label">Job Position *</label>
+                <select class="form-select" formControlName="jobId"
+                        [class.is-invalid]="isFieldInvalid('jobId')">
+                  <option value="">Select Job</option>
+                  <option *ngFor="let job of jobs" [value]="job.id">
+                    {{ job.title }} - {{ job.department }}
+                  </option>
+                </select>
+                <div class="invalid-feedback" *ngIf="isFieldInvalid('jobId')">
+                  Please select a job position
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-4">
+              <div class="mb-3">
                 <label class="form-label">Interview Round *</label>
                 <select class="form-select" formControlName="round"
-                        [class.is-invalid]="interviewForm.get('round')?.invalid && interviewForm.get('round')?.touched">
+                        [class.is-invalid]="isFieldInvalid('round')">
                   <option value="">Select Round</option>
                   <option value="First Round">First Round</option>
                   <option value="Second Round">Second Round</option>
@@ -45,8 +80,28 @@
                   <option value="HR Round">HR Round</option>
                   <option value="Technical Round">Technical Round</option>
                 </select>
-                <div class="invalid-feedback">
+                <div class="invalid-feedback" *ngIf="isFieldInvalid('round')">
                   Please select interview round
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="mb-3">
+                <label class="form-label">Interview Date *</label>
+                <input type="date" class="form-control" formControlName="interviewDate"
+                       [class.is-invalid]="isFieldInvalid('interviewDate')">
+                <div class="invalid-feedback" *ngIf="isFieldInvalid('interviewDate')">
+                  Interview date is required
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="mb-3">
+                <label class="form-label">Interview Time *</label>
+                <input type="time" class="form-control" formControlName="interviewTime"
+                       [class.is-invalid]="isFieldInvalid('interviewTime')">
+                <div class="invalid-feedback" *ngIf="isFieldInvalid('interviewTime')">
+                  Interview time is required
                 </div>
               </div>
             </div>
@@ -55,45 +110,47 @@
           <div class="row">
             <div class="col-md-6">
               <div class="mb-3">
-                <label class="form-label">Interview Date *</label>
-                <input type="date" class="form-control" formControlName="interviewDate"
-                       [class.is-invalid]="interviewForm.get('interviewDate')?.invalid && interviewForm.get('interviewDate')?.touched">
-                <div class="invalid-feedback">
-                  Interview date is required
+                <label class="form-label">Interview Type *</label>
+                <select class="form-select" formControlName="interviewType"
+                        [class.is-invalid]="isFieldInvalid('interviewType')">
+                  <option value="">Select Type</option>
+                  <option value="IN_PERSON">In Person</option>
+                  <option value="PHONE">Phone</option>
+                  <option value="VIDEO">Video Conference</option>
+                </select>
+                <div class="invalid-feedback" *ngIf="isFieldInvalid('interviewType')">
+                  Please select interview type
                 </div>
               </div>
             </div>
             <div class="col-md-6">
               <div class="mb-3">
-                <label class="form-label">Interview Time *</label>
-                <input type="time" class="form-control" formControlName="interviewTime"
-                       [class.is-invalid]="interviewForm.get('interviewTime')?.invalid && interviewForm.get('interviewTime')?.touched">
-                <div class="invalid-feedback">
-                  Interview time is required
+                <label class="form-label">Interviewer ID *</label>
+                <input type="number" class="form-control" formControlName="interviewerId"
+                       placeholder="Enter interviewer employee ID"
+                       [class.is-invalid]="isFieldInvalid('interviewerId')">
+                <div class="invalid-feedback" *ngIf="isFieldInvalid('interviewerId')">
+                  Interviewer ID is required and must be a positive number
                 </div>
+                <small class="form-text text-muted">
+                  Enter the employee ID of the interviewer
+                </small>
               </div>
             </div>
           </div>
 
           <div class="mb-3">
-            <label class="form-label">Interviewers *</label>
-            <input type="text" class="form-control" formControlName="interviewers" 
-                   placeholder="Enter interviewer names (comma separated)"
-                   [class.is-invalid]="interviewForm.get('interviewers')?.invalid && interviewForm.get('interviewers')?.touched">
-            <div class="invalid-feedback">
-              Interviewers are required
-            </div>
-            <small class="form-text text-muted">
-              Separate multiple interviewers with commas
-            </small>
+            <label class="form-label">Additional Notes</label>
+            <textarea class="form-control" formControlName="notes" rows="3"
+                      placeholder="Any additional notes for the interview..."></textarea>
           </div>
 
           <div class="d-flex gap-2">
             <button type="submit" class="btn btn-warning" [disabled]="interviewForm.invalid || isLoading">
               <span *ngIf="isLoading" class="spinner-border spinner-border-sm me-2"></span>
-              Schedule Interview
+              {{ isLoading ? 'Scheduling...' : 'Schedule Interview' }}
             </button>
-            <button type="button" class="btn btn-secondary" (click)="showForm = false">
+            <button type="button" class="btn btn-secondary" (click)="showForm = false" [disabled]="isLoading">
               Cancel
             </button>
           </div>
@@ -102,129 +159,146 @@
     </div>
 
     <!-- Interviews List -->
-    <div class="table-responsive">
-      <table class="table table-striped table-hover">
-        <thead class="table-dark">
-          <tr>
-            <th>Candidate</th>
-            <th>Interview Round</th>
-            <th>Date & Time</th>
-            <th>Interviewers</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let interview of interviews">
-            <td>
-              <strong>{{ getCandidateName(interview.candidateId) }}</strong>
-              <br>
-              <small class="text-muted">{{ interview.jobTitle }}</small>
-            </td>
-            <td>{{ interview.round }}</td>
-            <td>
-              {{ interview.interviewDate | date:'dd/MM/yyyy' }}
-              <br>
-              <small class="text-muted">{{ interview.interviewTime }}</small>
-            </td>
-            <td>
-              <span class="badge bg-light text-dark">{{ interview.interviewers }}</span>
-            </td>
-            <td>
-              <span [class]="getStatusBadgeClass(interview.status)">
-                {{ interview.status }}
-              </span>
-            </td>
-            <td>
-              <div class="btn-group btn-group-sm">
-                <button class="btn btn-outline-primary" title="Edit Interview">
-                  <i class="fas fa-edit"></i>
+    <div *ngIf="!isLoading && !errorMessage">
+      <div class="table-responsive">
+        <table class="table table-striped table-hover">
+          <thead class="table-dark">
+            <tr>
+              <th>Candidate</th>
+              <th>Job Position</th>
+              <th>Interview Round</th>
+              <th>Date & Time</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let interview of filteredInterviews">
+              <td>
+                <strong>{{ getCandidateName(interview.candidateId) }}</strong>
+                <br>
+                <small class="text-muted">{{ interview.candidateName || 'Loading...' }}</small>
+              </td>
+              <td>
+                {{ getJobTitle(interview.jobId) }}
+                <br>
+                <small class="text-muted">{{ interview.jobTitle || 'Loading...' }}</small>
+              </td>
+              <td>{{ interview.round || 'Not specified' }}</td>
+              <td>
+                {{ formatDateTime(interview.interviewDate, interview.interviewTime) }}
+                <br>
+                <small class="text-muted">{{ interview.interviewTime }}</small>
+              </td>
+              <td>
+                <span class="badge bg-info">{{ interview.interviewType || 'IN_PERSON' }}</span>
+              </td>
+              <td>
+                <span [class]="getStatusBadgeClass(interview.status)">
+                  {{ interview.status }}
+                </span>
+              </td>
+              <td>
+                <div class="btn-group btn-group-sm">
+                  <button class="btn btn-outline-primary" title="Edit Interview"
+                          (click)="rescheduleInterview(interview.id!)">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button class="btn btn-outline-success" title="Mark as Completed" 
+                          *ngIf="interview.status === 'SCHEDULED'"
+                          (click)="markAsCompleted(interview.id!)">
+                    <i class="fas fa-check"></i>
+                  </button>
+                  <button class="btn btn-outline-info" title="Reschedule" 
+                          *ngIf="interview.status === 'SCHEDULED'"
+                          (click)="rescheduleInterview(interview.id!)">
+                    <i class="fas fa-calendar-alt"></i>
+                  </button>
+                  <button class="btn btn-outline-danger" title="Cancel Interview"
+                          *ngIf="interview.status === 'SCHEDULED'"
+                          (click)="cancelInterview(interview.id!)">
+                    <i class="fas fa-times"></i>
+                  </button>
+                  <button class="btn btn-outline-secondary" title="View Details"
+                          (click)="viewInterviewDetails(interview.id!)">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="interviews.length === 0">
+              <td colspan="7" class="text-center text-muted py-4">
+                <i class="fas fa-calendar-times fa-2x mb-3 d-block"></i>
+                No interviews scheduled yet
+                <br>
+                <button class="btn btn-warning mt-2" (click)="showForm = true">
+                  <i class="fas fa-plus me-2"></i>Schedule First Interview
                 </button>
-                <button class="btn btn-outline-success" title="Mark as Completed" 
-                        *ngIf="interview.status === 'SCHEDULED'"
-                        (click)="markAsCompleted(interview.id!)">
-                  <i class="fas fa-check"></i>
-                </button>
-                <button class="btn btn-outline-info" title="Reschedule" 
-                        *ngIf="interview.status === 'SCHEDULED'"
-                        (click)="rescheduleInterview(interview.id!)">
-                  <i class="fas fa-calendar-alt"></i>
-                </button>
-                <button class="btn btn-outline-danger" title="Cancel Interview"
-                        *ngIf="interview.status === 'SCHEDULED'"
-                        (click)="cancelInterview(interview.id!)">
-                  <i class="fas fa-times"></i>
-                </button>
-              </div>
-            </td>
-          </tr>
-          <tr *ngIf="interviews.length === 0">
-            <td colspan="6" class="text-center text-muted py-4">
-              <i class="fas fa-calendar-times fa-2x mb-3 d-block"></i>
-              No interviews scheduled yet
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
-    <!-- Statistics Cards -->
-    <div class="row mt-4" *ngIf="interviews.length > 0">
-      <div class="col-md-3">
-        <div class="card bg-primary text-white">
-          <div class="card-body">
-            <div class="d-flex justify-content-between">
-              <div>
-                <h4>{{ scheduledCount }}</h4>
-                <p class="mb-0">Scheduled</p>
-              </div>
-              <div class="align-self-center">
-                <i class="fas fa-clock fa-2x"></i>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="card bg-success text-white">
-          <div class="card-body">
-            <div class="d-flex justify-content-between">
-              <div>
-                <h4>{{ completedCount }}</h4>
-                <p class="mb-0">Completed</p>
-              </div>
-              <div class="align-self-center">
-                <i class="fas fa-check-circle fa-2x"></i>
+      <!-- Statistics Cards -->
+      <div class="row mt-4" *ngIf="interviews.length > 0">
+        <div class="col-md-3">
+          <div class="card bg-primary text-white">
+            <div class="card-body">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <h4>{{ getInterviewsByStatus('SCHEDULED').length }}</h4>
+                  <p class="mb-0">Scheduled</p>
+                </div>
+                <div class="align-self-center">
+                  <i class="fas fa-clock fa-2x"></i>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-      <div class="col-md-3">
-        <div class="card bg-danger text-white">
-          <div class="card-body">
-            <div class="d-flex justify-content-between">
-              <div>
-                <h4>{{ cancelledCount }}</h4>
-                <p class="mb-0">Cancelled</p>
-              </div>
-              <div class="align-self-center">
-                <i class="fas fa-times-circle fa-2x"></i>
+        <div class="col-md-3">
+          <div class="card bg-success text-white">
+            <div class="card-body">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <h4>{{ getInterviewsByStatus('COMPLETED').length }}</h4>
+                  <p class="mb-0">Completed</p>
+                </div>
+                <div class="align-self-center">
+                  <i class="fas fa-check-circle fa-2x"></i>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-      <div class="col-md-3">
-        <div class="card bg-info text-white">
-          <div class="card-body">
-            <div class="d-flex justify-content-between">
-              <div>
-                <h4>{{ rescheduledCount }}</h4>
-                <p class="mb-0">Rescheduled</p>
+        <div class="col-md-3">
+          <div class="card bg-danger text-white">
+            <div class="card-body">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <h4>{{ getInterviewsByStatus('CANCELLED').length }}</h4>
+                  <p class="mb-0">Cancelled</p>
+                </div>
+                <div class="align-self-center">
+                  <i class="fas fa-times-circle fa-2x"></i>
+                </div>
               </div>
-              <div class="align-self-center">
-                <i class="fas fa-calendar-alt fa-2x"></i>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card bg-info text-white">
+            <div class="card-body">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <h4>{{ getInterviewsByStatus('RESCHEDULED').length }}</h4>
+                  <p class="mb-0">Rescheduled</p>
+                </div>
+                <div class="align-self-center">
+                  <i class="fas fa-calendar-alt fa-2x"></i>
+                </div>
               </div>
             </div>
           </div>

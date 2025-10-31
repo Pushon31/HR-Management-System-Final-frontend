@@ -29,7 +29,7 @@ export class SidebarComponent {
         { path: `/${basePath}/attendance/reports`, icon: 'fas fa-calendar-check', label: 'Attendance' },
         { path: `/${basePath}/leaves/approvals`, icon: 'fas fa-clipboard-list', label: 'Leave Management' },
         { path: `/${basePath}/recruitment/jobs`, icon: 'fas fa-briefcase', label: 'Recruitment' },
-        { path: `/${basePath}/payroll/process`, icon: 'fas fa-calculator', label: 'Payroll' },
+        { path: `/${basePath}/payroll`, icon: 'fas fa-calculator', label: 'Payroll' },
         { path: `/${basePath}/tasks`, icon: 'fas fa-tasks', label: 'Tasks' },
         { path: `/${basePath}/projects`, icon: 'fas fa-project-diagram', label: 'Projects' },
         { path: `/${basePath}/analytics/employees`, icon: 'fas fa-chart-bar', label: 'Analytics' }

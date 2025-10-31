@@ -1,0 +1,102 @@
+<!-- payroll-dashboard.component.html -->
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header bg-primary text-white">
+        <h4 class="mb-0">
+          <i class="fas fa-money-bill-wave me-2"></i>Payroll Management
+        </h4>
+      </div>
+      <div class="card-body">
+        
+        <!-- Current Month Status -->
+        <div class="alert alert-info">
+          <h5 class="alert-heading">
+            <i class="fas fa-calendar me-2"></i>{{ currentMonth }} Payroll
+          </h5>
+          <p class="mb-0">
+            <strong>Status:</strong> 
+            <span class="badge bg-warning" *ngIf="processedThisMonth === 0">Not Started</span>
+            <span class="badge bg-success" *ngIf="processedThisMonth > 0">In Progress</span>
+            <span class="badge bg-success" *ngIf="processedThisMonth === totalEmployees">Completed</span>
+          </p>
+          <div class="progress mt-2">
+            <div class="progress-bar" 
+                 [class]="getProgressBarClass()"
+                 [style.width]="(processedThisMonth / totalEmployees) * 100 + '%'">
+              {{ processedThisMonth }}/{{ totalEmployees }}
+            </div>
+          </div>
+          <button class="btn btn-success btn-sm mt-2" (click)="startCurrentMonthPayroll()">
+            <i class="fas fa-play me-1"></i> Start {{ currentMonth }} Payroll
+          </button>
+        </div>
+
+        <!-- Quick Actions -->
+        <h5 class="mb-3">Payroll Operations</h5>
+        <div class="row">
+          <div class="col-md-3 mb-3" *ngFor="let action of quickActions">
+            <div class="card h-100 action-card" [routerLink]="action.route">
+              <div class="card-body text-center">
+                <div class="mb-3">
+                  <i class="fas {{action.icon}} fa-2x text-{{action.color}}"></i>
+                </div>
+                <h6 class="card-title">{{ action.title }}</h6>
+                <p class="card-text text-muted small">{{ action.description }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Monthly Payroll History -->
+        <div class="row mt-4">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-header">
+                <h6 class="mb-0">Payroll History</h6>
+              </div>
+              <div class="card-body">
+                <div class="table-responsive">
+                  <table class="table table-sm">
+                    <thead>
+                      <tr>
+                        <th>Month</th>
+                        <th>Status</th>
+                        <th>Processed</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let month of monthlyStatus">
+                        <td>{{ month.month }}</td>
+                        <td>
+                          <span [class]="getStatusBadge(month.status)">
+                            {{ month.status }}
+                          </span>
+                        </td>
+                        <td>{{ month.processed }}/{{ month.total }}</td>
+                        <td>
+                          <button class="btn btn-outline-primary btn-sm" 
+                                  *ngIf="month.status === 'Completed'"
+                                  [routerLink]="['/admin/payroll/payslips']"
+                                  [queryParams]="{period: month.month}">
+                            View Payslips
+                          </button>
+                          <button class="btn btn-outline-success btn-sm" 
+                                  *ngIf="month.status === 'Pending'"
+                                  [routerLink]="['/admin/payroll/process']">
+                            Process
+                          </button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

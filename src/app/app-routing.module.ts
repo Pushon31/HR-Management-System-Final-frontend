@@ -65,6 +65,8 @@ import { ProjectFormComponent } from './components/tasks/project-form/project-fo
 import { EmployeeAnalyticsComponent } from './components/analytics/employee-analytics/employee-analytics.component';
 import { AttendanceAnalyticsComponent } from './components/analytics/attendance-analytics/attendance-analytics.component';
 import { PayrollAnalyticsComponent } from './components/analytics/payroll-analytics/payroll-analytics.component';
+import { PayrollDashboardComponent } from './components/payroll/payroll-dashboard/payroll-dashboard.component';
+import { SalaryStructureFormComponent } from './components/payroll/salary-structure-form/salary-structure-form.component';
 
 const routes: Routes = [
   // ==================== PUBLIC ROUTES ====================
@@ -214,26 +216,42 @@ const routes: Routes = [
       },
       
       // Payroll Management
-      { 
-        path: 'payroll/structures', 
-        component: SalaryStructureComponent,
-        data: { title: 'Salary Structures' }
-      },
-      { 
-        path: 'payroll/process', 
-        component: PayrollProcessComponent,
-        data: { title: 'Process Payroll' }
-      },
-      { 
-        path: 'payroll/payslips', 
-        component: PayslipViewComponent,
-        data: { title: 'Employee Payslips' }
-      },
-      { 
-        path: 'payroll/bonus', 
-        component: BonusManagementComponent,
-        data: { title: 'Bonus Management' }
-      },
+   { 
+  path: 'payroll', 
+  component: PayrollDashboardComponent,
+  data: { title: 'Payroll Dashboard' }
+},
+{ 
+  path: 'payroll/structures', 
+  component: SalaryStructureComponent,
+  data: { title: 'Salary Structures' }
+},
+{ 
+  path: 'payroll/structures/add',  // ✅ এই line টি যোগ করুন
+  component: SalaryStructureFormComponent, // আপনি এই component create করুন
+  data: { title: 'Add Salary Structure' }
+},
+{ 
+  path: 'payroll/structures/edit/:id',  // ✅ এই line টি যোগ করুন
+  component: SalaryStructureFormComponent, // একই component edit-এর জন্য
+  data: { title: 'Edit Salary Structure' }
+},
+
+{ 
+  path: 'payroll/process', 
+  component: PayrollProcessComponent,
+  data: { title: 'Process Payroll' }
+},
+{ 
+  path: 'payroll/payslips', 
+  component: PayslipViewComponent,
+  data: { title: 'Employee Payslips' }
+},
+{ 
+  path: 'payroll/bonus', 
+  component: BonusManagementComponent,
+  data: { title: 'Bonus Management' }
+},
       
       // Task Management
       { 

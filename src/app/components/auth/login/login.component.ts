@@ -56,13 +56,26 @@ export class LoginComponent implements OnInit {
       password: this.f['password'].value
     };
 
+    console.log('🔐 Login attempt with:', loginData.username);
+
     this.authService.login(loginData).subscribe({
-      next: () => {
-        this.loading = false;
-        this.redirectToDashboard();
+      next: (response) => {
+        console.log('✅ Login successful, response:', response);
+        
+        // Add a small delay to ensure token is stored
+        setTimeout(() => {
+          console.log('🔍 Checking storage after login:');
+          console.log('   - Token in storage:', !!localStorage.getItem('token'));
+          console.log('   - User in storage:', !!localStorage.getItem('currentUser'));
+          console.log('   - AuthService authenticated:', this.authService.isAuthenticated());
+          
+          this.loading = false;
+          this.redirectToDashboard();
+        }, 100);
       },
       error: (error) => {
-        this.error = error.error?.message || 'Login failed. Please check your credentials.';
+        console.error('❌ Login error:', error);
+        this.error = error.message || 'Login failed. Please check your credentials.';
         this.loading = false;
       }
     });
@@ -71,6 +84,7 @@ export class LoginComponent implements OnInit {
   private redirectToDashboard(): void {
     const baseRoute = this.authService.getBaseRoute();
     const targetUrl = this.returnUrl || `/${baseRoute}/dashboard`;
+    console.log('🔄 Redirecting to:', targetUrl);
     this.router.navigate([targetUrl]);
   }
 }

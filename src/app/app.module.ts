@@ -67,6 +67,8 @@ import { ProjectListComponent } from './components/tasks/project-list/project-li
 import { ProjectFormComponent } from './components/tasks/project-form/project-form.component';
 import { UserListComponent } from './components/admin/user-list/user-list.component';
 import { UserFormComponent } from './components/admin/user-form/user-form.component';
+import { PayrollDashboardComponent } from './components/payroll/payroll-dashboard/payroll-dashboard.component';
+import { SalaryStructureFormComponent } from './components/payroll/salary-structure-form/salary-structure-form.component';
 
 @NgModule({
   declarations: [
@@ -117,6 +119,8 @@ import { UserFormComponent } from './components/admin/user-form/user-form.compon
     PayrollProcessComponent,
     PayslipViewComponent,
     BonusManagementComponent,
+    PayrollDashboardComponent,
+    SalaryStructureFormComponent,
 
 
     
@@ -125,7 +129,12 @@ import { UserFormComponent } from './components/admin/user-form/user-form.compon
     ProjectFormComponent,
     TaskFormComponent,
     UserListComponent,
-    UserFormComponent
+    UserFormComponent,
+
+    
+    
+    
+  
 
 
 

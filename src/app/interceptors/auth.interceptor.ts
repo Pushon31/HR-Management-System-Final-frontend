@@ -1,53 +1,77 @@
 import { Injectable } from '@angular/core';
 import { HttpRequest, HttpHandler, HttpEvent, HttpInterceptor, HttpErrorResponse } from '@angular/common/http';
-import { Observable, throwError, BehaviorSubject } from 'rxjs';
-import { catchError, filter, take, switchMap } from 'rxjs/operators';
+import { Observable, throwError } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
 import { Router } from '@angular/router';
 
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
-  private isRefreshing = false;
-  private refreshTokenSubject: BehaviorSubject<any> = new BehaviorSubject<any>(null);
 
   constructor(
     private authService: AuthService,
     private router: Router
   ) {}
 
-  intercept(request: HttpRequest<unknown>, next: HttpHandler): Observable<HttpEvent<unknown>> {
-    // ✅ FIX: Check if user is logged in first
-    if (!this.authService.isLoggedIn()) {
-      return next.handle(request);
-    }
-
-    // Add auth header with jwt token if available
-    const token = this.authService.getToken();
-    
-    // Skip auth for login and signup requests
-    if (request.url.includes('/auth/signin') || request.url.includes('/auth/signup')) {
-      return next.handle(request);
-    }
-
-    // ✅ FIX: Always add token if user is logged in
-    if (token && this.authService.isLoggedIn()) {
-      request = this.addToken(request, token);
-    }
-
-    return next.handle(request).pipe(
-      catchError((error: HttpErrorResponse) => {
-        console.log('AuthInterceptor: HTTP Error', error.status, error.url);
-        
-        if (error.status === 401) {
-          return this.handle401Error(request, next);
-        }
-        return throwError(() => error);
-      })
-    );
+// auth.interceptor.ts - More detailed debugging
+intercept(request: HttpRequest<unknown>, next: HttpHandler): Observable<HttpEvent<unknown>> {
+  console.log('🔄 AuthInterceptor: Processing request to', request.url);
+  
+  // Check what's in localStorage directly
+  const storedToken = localStorage.getItem('token');
+  const storedUser = localStorage.getItem('currentUser');
+  
+  console.log('🔍 Interceptor Debug:');
+  console.log('   - Stored Token:', storedToken);
+  console.log('   - Stored User:', storedUser);
+  console.log('   - AuthService says authenticated:', this.authService.isAuthenticated());
+  console.log('   - AuthService token:', this.authService.getToken());
+  
+  // Skip auth for login, signup, and public endpoints
+  if (this.isPublicEndpoint(request.url)) {
+    console.log('🔓 AuthInterceptor: Skipping auth for public endpoint');
+    return next.handle(request);
   }
 
-  private addToken(request: HttpRequest<any>, token: string) {
-    console.log('AuthInterceptor: Adding token to request', request.url);
+  // Add auth token for authenticated requests
+  const token = this.authService.getToken();
+  
+  if (token && this.authService.isAuthenticated()) {
+    console.log('🔑 AuthInterceptor: Adding token to request');
+    console.log('🔑 Token being sent:', token.substring(0, 20) + '...');
+    request = this.addTokenToRequest(request, token);
+  } else {
+    console.log('🚫 AuthInterceptor: No valid token found - sending request without auth header');
+    // Don't add any auth header
+  }
+
+  return next.handle(request).pipe(
+    catchError((error: HttpErrorResponse) => {
+      console.log('❌ AuthInterceptor: HTTP Error', error.status, 'for', request.url);
+      console.log('❌ Error details:', error);
+      
+      if (error.status === 401) {
+        console.log('🔐 AuthInterceptor: 401 Unauthorized detected');
+        console.log('🔐 Request URL:', request.url);
+        console.log('🔐 Request Headers:', request.headers);
+        return this.handleUnauthorizedError();
+      }
+      
+      return throwError(() => error);
+    })
+  );
+}
+  private isPublicEndpoint(url: string): boolean {
+    const publicEndpoints = [
+      '/auth/signin',
+      '/auth/signup',
+      '/assets/',
+      '.json'
+    ];
+    return publicEndpoints.some(endpoint => url.includes(endpoint));
+  }
+
+  private addTokenToRequest(request: HttpRequest<any>, token: string): HttpRequest<any> {
     return request.clone({
       setHeaders: {
         Authorization: `Bearer ${token}`
@@ -55,23 +79,21 @@ export class AuthInterceptor implements HttpInterceptor {
     });
   }
 
-  private handle401Error(request: HttpRequest<any>, next: HttpHandler) {
-    if (!this.isRefreshing) {
-      this.isRefreshing = true;
-      this.refreshTokenSubject.next(null);
-
-      console.log('AuthInterceptor: 401 Unauthorized - Logging out');
-      
-      // For now, just logout the user since we don't have refresh token implemented
-      this.authService.logout();
-      this.router.navigate(['/login']);
-      return throwError(() => new Error('Session expired. Please login again.'));
-    }
-
-    return this.refreshTokenSubject.pipe(
-      filter(token => token !== null),
-      take(1),
-      switchMap(token => next.handle(this.addToken(request, token)))
-    );
+  private handleUnauthorizedError(): Observable<never> {
+    console.log('🚪 AuthInterceptor: Performing logout due to authentication failure');
+    
+    // Clear auth data
+    this.authService.logout();
+    
+    // Navigate to login with return URL
+    const currentUrl = this.router.url;
+    this.router.navigate(['/login'], { 
+      queryParams: { 
+        returnUrl: currentUrl,
+        error: 'session_expired'
+      } 
+    });
+    
+    return throwError(() => new Error('Authentication failed. Please login again.'));
   }
 }
