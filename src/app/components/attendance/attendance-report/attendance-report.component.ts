@@ -1,4 +1,3 @@
-// attendance-report.component.ts
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup } from '@angular/forms';
 import { AuthService } from '../../../services/auth.service';
@@ -40,7 +39,6 @@ export class AttendanceReportComponent implements OnInit {
   ngOnInit(): void {
     this.currentUser = this.authService.getCurrentUser();
     this.loadEmployees();
-    this.generateReport();
   }
 
   createReportForm(): FormGroup {
@@ -56,11 +54,12 @@ export class AttendanceReportComponent implements OnInit {
 
   loadEmployees(): void {
     this.employeeService.getAllEmployees().subscribe({
-      next: (employees) => {
+      next: (employees: Employee[]) => {
         this.employees = employees;
+        console.log('✅ Employees loaded:', employees.length);
       },
-      error: (error) => {
-        console.error('Error loading employees:', error);
+      error: (error: any) => {
+        console.error('❌ Error loading employees:', error);
       }
     });
   }
@@ -68,6 +67,7 @@ export class AttendanceReportComponent implements OnInit {
   generateReport(): void {
     this.loading = true;
     const formValue = this.reportForm.value;
+    console.log('🔄 Generating report with:', formValue);
 
     switch (formValue.reportType) {
       case 'daily':
@@ -79,61 +79,70 @@ export class AttendanceReportComponent implements OnInit {
       case 'employee':
         this.generateEmployeeReport(formValue.employeeId, formValue.year, formValue.month);
         break;
+      default:
+        this.loading = false;
+        break;
     }
   }
 
   generateDailyReport(date: string): void {
     this.attendanceService.getAttendanceByDate(date).subscribe({
-      next: (attendance) => {
+      next: (attendance: Attendance[]) => {
+        console.log('✅ Daily report data:', attendance);
         this.attendanceData = attendance;
         this.calculateDailySummary();
         this.prepareChartData();
         this.loading = false;
       },
-      error: (error) => {
-        console.error('Error generating daily report:', error);
+      error: (error: any) => {
+        console.error('❌ Error generating daily report:', error);
         this.loading = false;
+        alert('Error generating daily report. Please try again.');
       }
     });
   }
 
   generateMonthlyReport(year: number, month: number): void {
-    // For monthly report, we need to get attendance for each employee for the month
-    // This is a simplified version - in real scenario, you might need a dedicated endpoint
+    // ✅ FIXED: Now using getAllAttendance which exists
     this.attendanceService.getAllAttendance().subscribe({
-      next: (allAttendance) => {
+      next: (allAttendance: Attendance[]) => {
         // Filter attendance for the selected month and year
-        this.attendanceData = allAttendance.filter(attendance => {
+        this.attendanceData = allAttendance.filter((attendance: Attendance) => {
           const attDate = new Date(attendance.attendanceDate);
           return attDate.getFullYear() === year && attDate.getMonth() + 1 === month;
         });
+        console.log('✅ Monthly report data:', this.attendanceData);
         this.calculateMonthlySummary();
         this.prepareChartData();
         this.loading = false;
       },
-      error: (error) => {
-        console.error('Error generating monthly report:', error);
+      error: (error: any) => {
+        console.error('❌ Error generating monthly report:', error);
         this.loading = false;
+        alert('Error generating monthly report. Please try again.');
       }
     });
   }
 
   generateEmployeeReport(employeeId: string, year: number, month: number): void {
     if (!employeeId) {
+      alert('Please select an employee');
       this.loading = false;
       return;
     }
 
     this.attendanceService.getMonthlyAttendance(employeeId, year, month).subscribe({
-      next: (attendance) => {
+      next: (attendance: Attendance[]) => {
+        console.log('✅ Employee report data:', attendance);
         this.attendanceData = attendance;
-        this.calculateEmployeeSummary();
+        this.calculateEmployeeSummary(employeeId);
         this.prepareChartData();
         this.loading = false;
       },
-      error: (error) => {
-        console.error('Error generating employee report:', error);
+      error: (error: any) => {
+        console.error('❌ Error generating employee report:', error);
         this.loading = false;
+        alert('Error generating employee report. Please try again.');
       }
     });
   }
@@ -148,7 +157,7 @@ export class AttendanceReportComponent implements OnInit {
       presentPercentage: 0
     };
 
-    this.attendanceData.forEach(attendance => {
+    this.attendanceData.forEach((attendance: Attendance) => {
       switch (attendance.status) {
         case AttendanceStatus.PRESENT:
           summary.present++;
@@ -159,12 +168,16 @@ export class AttendanceReportComponent implements OnInit {
         case AttendanceStatus.HALF_DAY:
           summary.halfDay++;
           break;
+        case AttendanceStatus.ABSENT:
+          summary.absent++;
+          break;
       }
     });
 
-    // Calculate absent employees (total employees - those with attendance records)
+    // Calculate employees with no attendance record as absent
     const employeesWithAttendance = new Set(this.attendanceData.map(a => a.employeeId));
-    summary.absent = summary.totalEmployees - employeesWithAttendance.size;
+    const actualAbsent = summary.totalEmployees - employeesWithAttendance.size;
+    summary.absent += actualAbsent;
 
     summary.presentPercentage = summary.totalEmployees > 0 
       ? ((summary.present + summary.late + summary.halfDay) / summary.totalEmployees) * 100 
@@ -177,7 +190,7 @@ export class AttendanceReportComponent implements OnInit {
     // Group attendance by employee and calculate monthly stats
     const employeeStats = new Map();
 
-    this.attendanceData.forEach(attendance => {
+    this.attendanceData.forEach((attendance: Attendance) => {
       if (!employeeStats.has(attendance.employeeId)) {
         employeeStats.set(attendance.employeeId, {
           employeeId: attendance.employeeId,
@@ -214,17 +227,49 @@ export class AttendanceReportComponent implements OnInit {
     };
   }
 
-  calculateEmployeeSummary(): void {
-    if (this.attendanceData.length === 0) return;
+  calculateEmployeeSummary(employeeId: string): void {
+    if (this.attendanceData.length === 0) {
+      this.summary = {
+        totalPresent: 0,
+        totalLate: 0,
+        totalHalfDay: 0,
+        totalAbsent: 0,
+        totalWorkingDays: 0,
+        attendancePercentage: 0,
+        employeeName: this.getEmployeeName(employeeId),
+        employeeId: employeeId
+      };
+      return;
+    }
 
-    const summary = this.attendanceService.calculateAttendanceSummary(this.attendanceData);
+    const totalPresent = this.attendanceData.filter((a: Attendance) => a.status === AttendanceStatus.PRESENT).length;
+    const totalLate = this.attendanceData.filter((a: Attendance) => a.status === AttendanceStatus.LATE).length;
+    const totalHalfDay = this.attendanceData.filter((a: Attendance) => a.status === AttendanceStatus.HALF_DAY).length;
+    const totalAbsent = this.attendanceData.filter((a: Attendance) => a.status === AttendanceStatus.ABSENT).length;
+    const totalWorkingDays = this.getWorkingDaysInMonth(
+      this.reportForm.value.year, 
+      this.reportForm.value.month
+    );
+
+    const attendancePercentage = totalWorkingDays > 0 
+      ? ((totalPresent + totalLate) / totalWorkingDays) * 100 
+      : 0;
+
     this.summary = {
-      ...summary,
-      totalWorkingDays: this.getWorkingDaysInMonth(
-        this.reportForm.value.year, 
-        this.reportForm.value.month
-      )
+      totalPresent,
+      totalLate,
+      totalHalfDay,
+      totalAbsent,
+      totalWorkingDays,
+      attendancePercentage: Math.round(attendancePercentage * 100) / 100,
+      employeeName: this.attendanceData[0]?.employeeName || this.getEmployeeName(employeeId),
+      employeeId: employeeId
     };
+  }
+
+  private getEmployeeName(employeeId: string): string {
+    const employee = this.employees.find(emp => emp.employeeId === employeeId);
+    return employee ? `${employee.firstName} ${employee.lastName}` : 'Unknown Employee';
   }
 
   prepareChartData(): void {
@@ -235,10 +280,10 @@ export class AttendanceReportComponent implements OnInit {
         labels: ['Present', 'Late', 'Half Day', 'Absent'],
         datasets: [{
           data: [
-            this.summary.present,
-            this.summary.late,
-            this.summary.halfDay,
-            this.summary.absent
+            this.summary.present || 0,
+            this.summary.late || 0,
+            this.summary.halfDay || 0,
+            this.summary.absent || 0
           ],
           backgroundColor: ['#28a745', '#ffc107', '#17a2b8', '#dc3545']
         }]
@@ -271,15 +316,94 @@ export class AttendanceReportComponent implements OnInit {
         employeeId: ''
       });
     }
+    
+    // Clear previous data
+    this.attendanceData = [];
+    this.summary = {};
+    this.chartData = {};
   }
 
   exportToPDF(): void {
-    // In a real application, you would generate a PDF here
-    alert('PDF export functionality would be implemented here with a PDF library.');
+    if (this.attendanceData.length === 0) {
+      alert('No data to export');
+      return;
+    }
+    
+    // Simple PDF export simulation
+    const reportType = this.reportForm.get('reportType')?.value;
+    const content = this.generatePDFContent();
+    
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Attendance Report</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 20px; }
+              table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+              th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+              th { background-color: #f2f2f2; }
+            </style>
+          </head>
+          <body>
+            <h1>Attendance Report - ${reportType.toUpperCase()}</h1>
+            ${content}
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    }
+  }
+
+  private generatePDFContent(): string {
+    const formValue = this.reportForm.value;
+    
+    if (formValue.reportType === 'daily') {
+      return `
+        <h2>Date: ${this.formatDate(formValue.reportDate)}</h2>
+        <p><strong>Total Employees:</strong> ${this.summary.totalEmployees}</p>
+        <p><strong>Present:</strong> ${this.summary.present}</p>
+        <p><strong>Late:</strong> ${this.summary.late}</p>
+        <p><strong>Half Day:</strong> ${this.summary.halfDay}</p>
+        <p><strong>Absent:</strong> ${this.summary.absent}</p>
+        <p><strong>Attendance Rate:</strong> ${this.summary.presentPercentage?.toFixed(1)}%</p>
+      `;
+    }
+    
+    return '<p>Report content would be generated here</p>';
   }
 
   formatDate(dateString: string): string {
-    return new Date(dateString).toLocaleDateString('en-BD');
+    if (!dateString) return 'N/A';
+    try {
+      return new Date(dateString).toLocaleDateString('en-BD');
+    } catch {
+      return 'Invalid Date';
+    }
+  }
+
+  formatTime(timeString: string): string {
+    if (!timeString) return 'N/A';
+    
+    try {
+      const timePart = timeString.includes('T') 
+        ? timeString.split('T')[1]?.split('.')[0]
+        : timeString;
+      
+      const [hours, minutes, seconds] = timePart.split(':');
+      const time = new Date();
+      time.setHours(parseInt(hours), parseInt(minutes), seconds ? parseInt(seconds) : 0);
+      
+      return time.toLocaleTimeString('en-BD', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+    } catch (error) {
+      return 'Invalid Time';
+    }
   }
 
   getStatusBadgeClass(status: AttendanceStatus): string {
