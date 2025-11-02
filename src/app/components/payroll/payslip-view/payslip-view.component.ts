@@ -10,18 +10,20 @@ import { Payslip } from '../../../models/payroll.model';
   styleUrls: ['./payslip-view.component.scss']
 })
 export class PayslipViewComponent implements OnInit {
-  payslips: Payslip[] = [];
-  filteredPayslips: Payslip[] = [];
+  payslips: any[] = [];
+  filteredPayslips: any[] = [];
+  isLoading: boolean = false;
+  hasPayrollAccess: boolean = false;
+  
+  // Filters
   searchTerm: string = '';
   payPeriodFilter: string = '';
-  isLoading: boolean = false;
-
-  totalBasicSalary: number = 0;
+  statusFilter: string = 'ALL';
+  
+  // Stats
+  totalPayslips: number = 0;
   totalNetSalary: number = 0;
-  generatedPayslipsCount: number = 0;
-
-  isEmployeeView: boolean = false;
-  employeeId: string = '';
+  generatedCount: number = 0;
 
   constructor(
     private payrollService: PayrollService,
@@ -30,118 +32,105 @@ export class PayslipViewComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    console.log('🔐 Checking authentication before loading payslips');
-    
-    // Debug token info
-    const tokenInfo = this.authService.getTokenInfo();
-    console.log('🔐 Token Info:', tokenInfo);
-    
-    if (!this.authService.isAuthenticated()) {
-      console.log('🔐 User not authenticated, redirecting to login');
-      this.handleAuthenticationError();
-      return;
-    }
-    
-    console.log('🔐 User authenticated, loading payslips');
-    this.loadPayslips();
+    this.checkAccessAndLoad();
   }
 
-  loadPayslips(): void {
+  private checkAccessAndLoad(): void {
+    // Check if user has required roles for payroll access
+    const user = this.authService.getCurrentUser();
+    const requiredRoles = ['ROLE_ACCOUNTANT', 'ROLE_ADMIN', 'ROLE_MANAGER'];
+    
+    this.hasPayrollAccess = requiredRoles.some(role => 
+      user?.roles.includes(role)
+    );
+
+    console.log('🔐 Payroll Access Check:');
+    console.log('   - User roles:', user?.roles);
+    console.log('   - Required roles:', requiredRoles);
+    console.log('   - Has access:', this.hasPayrollAccess);
+
+    if (this.hasPayrollAccess) {
+      this.loadPayslips();
+    } else {
+      console.log('❌ User lacks payroll access permissions');
+    }
+  }
+
+  private loadPayslips(): void {
     this.isLoading = true;
     
     const currentDate = new Date();
-    const currentYearMonth = `${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}`;
-    this.payPeriodFilter = currentYearMonth;
+    this.payPeriodFilter = `${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}`;
+
+    console.log('📄 Loading payslips...');
     
-    console.log('📄 Loading payslips for period:', currentYearMonth);
-    
-    this.payrollService.getPayslipsByPayPeriod(currentYearMonth).subscribe({
+    this.payrollService.getPayslipsByPayPeriod(this.payPeriodFilter).subscribe({
       next: (payslips) => {
-        console.log('✅ Payslips loaded successfully:', payslips.length, 'records');
+        console.log('✅ Payslips loaded:', payslips.length);
         this.payslips = payslips;
         this.filteredPayslips = payslips;
-        this.calculatePayslipStats();
+        this.calculateStats();
         this.isLoading = false;
       },
       error: (error) => {
         console.error('❌ Error loading payslips:', error);
-        
-        if (error.status === 401) {
-          console.log('🔐 401 Unauthorized - Session expired');
-          this.handleAuthenticationError();
-        } else {
-          console.log('⚠️ Other error - showing generic message');
-          alert('Failed to load payslips. Please try again.');
-        }
-        
         this.isLoading = false;
+        this.handleLoadError(error);
       }
     });
   }
 
-  private handleAuthenticationError(): void {
-    console.log('🔐 Handling authentication error - redirecting to login');
-    alert('Your session has expired. Please login again.');
-    this.authService.logout();
-    this.router.navigate(['/login'], { 
-      queryParams: { 
-        returnUrl: this.router.url,
-        error: 'session_expired'
-      }
-    });
-  }
-
-  onPayPeriodChange(): void {
-    if (this.payPeriodFilter) {
-      this.isLoading = true;
-      console.log('📄 Changing period to:', this.payPeriodFilter);
-      
-      this.payrollService.getPayslipsByPayPeriod(this.payPeriodFilter).subscribe({
-        next: (payslips) => {
-          console.log('✅ Payslips loaded for new period:', payslips.length, 'records');
-          this.payslips = payslips;
-          this.filteredPayslips = payslips;
-          this.calculatePayslipStats();
-          this.isLoading = false;
-        },
-        error: (error) => {
-          console.error('❌ Error loading payslips for new period:', error);
-          
-          if (error.status === 401) {
-            this.handleAuthenticationError();
-          } else {
-            alert('Failed to load payslips. Please try again.');
-          }
-          
-          this.isLoading = false;
-        }
-      });
+  private handleLoadError(error: any): void {
+    if (error.status === 401 || error.status === 403) {
+      console.log('🔐 Access denied by server');
+    } else {
+      alert('Failed to load payslips. Please try again later.');
     }
   }
 
-  // ... rest of your methods remain the same
-  calculatePayslipStats(): void {
-    this.totalBasicSalary = this.filteredPayslips.reduce((sum, p) => sum + p.basicSalary, 0);
-    this.totalNetSalary = this.filteredPayslips.reduce((sum, p) => sum + p.netSalary, 0);
-    this.generatedPayslipsCount = this.filteredPayslips.filter(p => p.status === 'GENERATED').length;
+  onPayPeriodChange(): void {
+    if (this.payPeriodFilter && this.hasPayrollAccess) {
+      this.loadPayslips();
+    }
   }
 
   applyFilters(): void {
+    if (!this.hasPayrollAccess) return;
+    
     this.filteredPayslips = this.payslips.filter(payslip => {
-      const matchesSearch = payslip.employeeName?.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-                           payslip.employeeCode?.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-                           payslip.payslipCode?.toLowerCase().includes(this.searchTerm.toLowerCase());
+      const matchesSearch = 
+        payslip.employeeName?.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+        payslip.employeeCode?.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+        payslip.payslipCode?.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+        false;
       
-      const matchesPeriod = !this.payPeriodFilter || payslip.payPeriod === this.payPeriodFilter;
+      const matchesStatus = this.statusFilter === 'ALL' || payslip.status === this.statusFilter;
       
-      return matchesSearch && matchesPeriod;
+      return matchesSearch && matchesStatus;
     });
-    this.calculatePayslipStats();
+    
+    this.calculateStats();
+  }
+
+  private calculateStats(): void {
+    this.totalPayslips = this.filteredPayslips.length;
+    this.totalNetSalary = this.filteredPayslips.reduce((sum, p) => sum + (p.netSalary || 0), 0);
+    this.generatedCount = this.filteredPayslips.filter(p => p.status === 'GENERATED').length;
   }
 
   generatePayslip(payrollId: number): void {
-    console.log('🔄 Generating payslip for payroll ID:', payrollId);
-    
+    if (!this.authService.isAuthenticated()) {
+      this.redirectToLogin();
+      return;
+    }
+
+    if (!this.hasPayrollAccess) {
+      alert('You do not have permission to generate payslips.');
+      return;
+    }
+
+    console.log('🔄 Generating payslip for payroll:', payrollId);
+
     this.payrollService.generatePayslip(payrollId).subscribe({
       next: (payslip) => {
         console.log('✅ Payslip generated successfully');
@@ -152,18 +141,51 @@ export class PayslipViewComponent implements OnInit {
         console.error('❌ Error generating payslip:', error);
         
         if (error.status === 401) {
-          this.handleAuthenticationError();
-          return;
+          this.redirectToLogin();
+        } else if (error.status === 403) {
+          alert('You do not have permission to generate payslips.');
+        } else {
+          alert('Error generating payslip. Please try again.');
         }
-        
-        alert('Error generating payslip. Please try again.');
       }
     });
   }
 
-  downloadPayslip(payslip: Payslip): void {
-    console.log('📥 Downloading payslip:', payslip);
-    alert('Payslip download functionality would be implemented here');
+  downloadPayslip(payslip: any): void {
+    console.log('📥 Downloading payslip:', payslip.payslipCode);
+    
+    if (!this.authService.isAuthenticated()) {
+      this.redirectToLogin();
+      return;
+    }
+
+    if (!this.hasPayrollAccess) {
+      alert('You do not have permission to download payslips.');
+      return;
+    }
+
+    alert(`Download functionality for ${payslip.payslipCode} would be implemented here`);
+  }
+
+  viewPayslipDetails(payslipId: number): void {
+    if (!this.authService.isAuthenticated()) {
+      this.redirectToLogin();
+      return;
+    }
+    
+    if (!this.hasPayrollAccess) {
+      alert('You do not have permission to view payslip details.');
+      return;
+    }
+
+    this.router.navigate(['/admin/payroll/payslips', payslipId]);
+  }
+
+  private redirectToLogin(): void {
+    this.authService.logout();
+    this.router.navigate(['/login'], {
+      queryParams: { returnUrl: this.router.url }
+    });
   }
 
   formatCurrency(amount: number): string {
@@ -171,15 +193,16 @@ export class PayslipViewComponent implements OnInit {
       style: 'currency',
       currency: 'BDT',
       minimumFractionDigits: 2
-    }).format(amount);
+    }).format(amount || 0);
   }
 
   getStatusBadgeClass(status: string): string {
-    switch (status) {
+    switch (status?.toUpperCase()) {
       case 'GENERATED': return 'badge bg-success';
+      case 'PENDING': return 'badge bg-warning';
       case 'DOWNLOADED': return 'badge bg-info';
       case 'ARCHIVED': return 'badge bg-secondary';
-      default: return 'badge bg-warning';
+      default: return 'badge bg-secondary';
     }
   }
 
@@ -194,5 +217,41 @@ export class PayslipViewComponent implements OnInit {
     }
     
     return periods;
+  }
+
+  clearFilters(): void {
+    this.searchTerm = '';
+    this.statusFilter = 'ALL';
+    this.filteredPayslips = this.payslips;
+    this.calculateStats();
+  }
+
+  refreshData(): void {
+    console.log('🔄 Refreshing payslip data');
+    if (this.hasPayrollAccess) {
+      this.loadPayslips();
+    }
+  }
+
+  // Helper properties for template
+  get hasData(): boolean {
+    return this.payslips.length > 0;
+  }
+
+  get filteredCount(): number {
+    return this.filteredPayslips.length;
+  }
+
+  // Debug method to check user info
+  debugUserInfo(): void {
+    const user = this.authService.getCurrentUser();
+    console.log('=== USER ROLE DEBUG ===');
+    console.log('User:', user);
+    console.log('Roles:', user?.roles);
+    console.log('Has ADMIN:', user?.roles.includes('ROLE_ADMIN'));
+    console.log('Has ACCOUNTANT:', user?.roles.includes('ROLE_ACCOUNTANT')); 
+    console.log('Has MANAGER:', user?.roles.includes('ROLE_MANAGER'));
+    console.log('Has EMPLOYEE:', user?.roles.includes('ROLE_EMPLOYEE'));
+    console.log('=====================');
   }
 }

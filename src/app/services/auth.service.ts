@@ -24,6 +24,7 @@ export interface User {
   fullName: string;
   roles: string[];
   token: string;
+  employeeId?: string;  // ✅ ADDED: Employee ID field
 }
 
 export interface AuthResponse {
@@ -34,6 +35,7 @@ export interface AuthResponse {
   email: string;
   fullName: string;
   roles: string[];
+  employeeId?: string;  // ✅ ADDED: Employee ID field
 }
 
 @Injectable({
@@ -58,14 +60,16 @@ export class AuthService {
     if (savedUser && token) {
       try {
         const user = JSON.parse(savedUser);
-        // Verify token is still valid
         if (this.isTokenValid(token)) {
           user.token = token;
           this.currentUserSubject.next(user);
+          console.log('✅ User loaded from storage:', user.username);
         } else {
+          console.log('❌ Token expired, clearing storage');
           this.clearAuthData();
         }
       } catch (e) {
+        console.error('❌ Error parsing stored user:', e);
         this.clearAuthData();
       }
     }
@@ -74,55 +78,52 @@ export class AuthService {
   private isTokenValid(token: string): boolean {
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
-      return payload.exp > (Date.now() / 1000);
+      const currentTime = Date.now() / 1000;
+      return payload.exp > currentTime;
     } catch {
       return false;
     }
   }
 
-login(loginData: LoginRequest): Observable<AuthResponse> {
-  console.log('🔐 AuthService: Starting login process');
-  console.log('🔐 Login endpoint:', `${this.apiUrl}/signin`);
-  
-  return this.http.post<AuthResponse>(`${this.apiUrl}/signin`, loginData)
-    .pipe(
-      tap(response => {
-        console.log('✅ AuthService: Login API response received');
-        console.log('✅ Response contains token:', !!response.token);
-        console.log('✅ Full response:', response);
-        
-        const user: User = {
-          id: response.id,
-          username: response.username,
-          email: response.email,
-          fullName: response.fullName,
-          roles: response.roles,
-          token: response.token
-        };
-        
-        console.log('💾 AuthService: About to store user data');
-        this.setCurrentUser(user);
-        
-        // Verify storage worked
-        setTimeout(() => {
-          console.log('🔍 AuthService: Storage verification:');
-          console.log('   - Token stored:', localStorage.getItem('token') !== null);
-          console.log('   - User stored:', localStorage.getItem('currentUser') !== null);
-          console.log('   - Current user subject updated:', this.currentUserSubject.value !== null);
-        }, 50);
-      }),
-      catchError(error => {
-        console.error('❌ AuthService: Login API error', error);
-        let errorMessage = 'Login failed. Please check your credentials.';
-        
-        if (error.error && error.error.message) {
-          errorMessage = error.error.message;
-        }
-        
-        return throwError(() => new Error(errorMessage));
-      })
-    );
-}
+  login(loginData: LoginRequest): Observable<AuthResponse> {
+    console.log('🔐 AuthService: Starting login process for:', loginData.username);
+    
+    return this.http.post<AuthResponse>(`${this.apiUrl}/signin`, loginData)
+      .pipe(
+        tap(response => {
+          console.log('✅ AuthService: Login API response received');
+          console.log('✅ User roles:', response.roles);
+          console.log('✅ Employee ID:', response.employeeId); // ✅ ADDED
+          
+          const user: User = {
+            id: response.id,
+            username: response.username,
+            email: response.email,
+            fullName: response.fullName,
+            roles: response.roles,
+            token: response.token,
+            employeeId: response.employeeId // ✅ ADDED
+          };
+          
+          this.setCurrentUser(user);
+          console.log('✅ Login successful for user:', user.username);
+        }),
+        catchError(error => {
+          console.error('❌ AuthService: Login API error', error);
+          let errorMessage = 'Login failed. Please check your credentials.';
+          
+          if (error.error && error.error.message) {
+            errorMessage = error.error.message;
+          } else if (error.status === 401) {
+            errorMessage = 'Invalid username or password.';
+          } else if (error.status === 0) {
+            errorMessage = 'Cannot connect to server. Please check your connection.';
+          }
+          
+          return throwError(() => new Error(errorMessage));
+        })
+      );
+  }
 
   signup(signupData: SignupRequest): Observable<any> {
     return this.http.post(`${this.apiUrl}/signup`, signupData)
@@ -142,125 +143,241 @@ login(loginData: LoginRequest): Observable<AuthResponse> {
       );
   }
 
-private setCurrentUser(user: User): void {
-  console.log('💾 setCurrentUser called with:', user);
-  
-  try {
-    // Store in localStorage
-    localStorage.setItem('currentUser', JSON.stringify(user));
-    console.log('✅ User stored in localStorage');
-    
-    localStorage.setItem('token', user.token);
-    console.log('✅ Token stored in localStorage');
-    
-    // Update BehaviorSubject
-    this.currentUserSubject.next(user);
-    console.log('✅ BehaviorSubject updated');
-    
-  } catch (error) {
-    console.error('❌ Error in setCurrentUser:', error);
+  private setCurrentUser(user: User): void {
+    try {
+      // Store in localStorage
+      localStorage.setItem('currentUser', JSON.stringify({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        fullName: user.fullName,
+        roles: user.roles,
+        employeeId: user.employeeId // ✅ ADDED
+      }));
+      localStorage.setItem('token', user.token);
+      
+      // Update BehaviorSubject
+      this.currentUserSubject.next(user);
+      
+      console.log('✅ User stored successfully:', user.username);
+    } catch (error) {
+      console.error('❌ Error storing user data:', error);
+    }
   }
-}
+
   getCurrentUser(): User | null {
     return this.currentUserSubject.value;
   }
 
   getToken(): string | null {
-    return localStorage.getItem('token');
-  }
+  // Check both service state and localStorage
+  const storedToken = localStorage.getItem('token');
+  console.log('🔐 getToken():', storedToken ? 'Found in storage' : 'Not in storage');
+  return storedToken;
+}
 
-  isAuthenticated(): boolean {
+isAuthenticated(): boolean {
   const token = this.getToken();
+  
   if (!token) {
-    console.log('🔐 No token found');
+    console.log('🔐 isAuthenticated(): No token found');
     return false;
   }
 
   try {
-    // Decode the token payload
+    // Decode token to check expiry
     const payload = JSON.parse(atob(token.split('.')[1]));
-    const currentTime = Date.now() / 1000; // Current time in seconds
+    const currentTime = Date.now() / 1000;
+    const isExpired = payload.exp < currentTime;
     
-    console.log('🔐 Token expiration check:');
-    console.log('   - Token expires at:', new Date(payload.exp * 1000));
-    console.log('   - Current time:', new Date());
-    console.log('   - Is expired?', payload.exp < currentTime);
+    console.log('🔐 Token validation details:');
+    console.log('   - Token issued:', new Date(payload.iat * 1000));
+    console.log('   - Token expires:', new Date(payload.exp * 1000));
+    console.log('   - Current time:', new Date(currentTime * 1000));
+    console.log('   - Time until expiry:', (payload.exp - currentTime).toFixed(0) + ' seconds');
+    console.log('   - Is expired:', isExpired);
     
-    if (payload.exp < currentTime) {
-      console.log('🔐 Token expired, logging out');
-      this.logout();
+    if (isExpired) {
+      console.log('🔐 Token expired, clearing auth data');
+      this.clearAuthData();
       return false;
     }
     
+    console.log('🔐 Token is valid');
     return true;
   } catch (error) {
     console.error('🔐 Error decoding token:', error);
-    this.logout();
+    console.log('🔐 Token might be malformed, clearing auth data');
+    this.clearAuthData();
     return false;
   }
 }
 
-
-
-
-
-// Also add this method for debugging
-getTokenInfo(): any {
+isTokenLikelyValid(): boolean {
   const token = this.getToken();
-  if (!token) return null;
-  
+  if (!token) return false;
+
   try {
     const payload = JSON.parse(atob(token.split('.')[1]));
-    return {
-      issuedAt: new Date(payload.iat * 1000),
-      expiresAt: new Date(payload.exp * 1000),
-      subject: payload.sub,
-      roles: payload.roles || []
-    };
-  } catch (error) {
-    return null;
+    const currentTime = Date.now() / 1000;
+    return payload.exp > currentTime;
+  } catch {
+    return false;
   }
 }
-
-  // ✅ Renamed from isLoggedIn to isAuthenticated for consistency
+// Make sure clearAuthData is properly implemented
+private clearAuthData(): void {
+  console.log('🧹 Clearing auth data from storage');
+  localStorage.removeItem('currentUser');
+  localStorage.removeItem('token');
+  this.currentUserSubject.next(null);
+}
   isLoggedIn(): boolean {
     return this.isAuthenticated();
   }
 
-  logout(): void {
-    this.clearAuthData();
-    this.currentUserSubject.next(null);
-    this.router.navigate(['/login']);
+  // ✅ UPDATED: Get employee ID from user data
+  getEmployeeId(): string | null {
+    const user = this.getCurrentUser();
+    return user?.employeeId || null;
   }
 
-  private clearAuthData(): void {
-    localStorage.removeItem('currentUser');
-    localStorage.removeItem('token');
-    localStorage.removeItem('user_role');
+  getUserRole(): string {
+    const user = this.getCurrentUser();
+    if (!user) return '';
+
+    const roleMap: { [key: string]: string } = {
+      'ROLE_ADMIN': 'admin',
+      'ROLE_MANAGER': 'manager', 
+      'ROLE_HR': 'hr',
+      'ROLE_ACCOUNTANT': 'accountant',
+      'ROLE_EMPLOYEE': 'employee'
+    };
+
+    const priorityOrder = ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_HR', 'ROLE_ACCOUNTANT', 'ROLE_EMPLOYEE'];
+    
+    for (const role of priorityOrder) {
+      if (user.roles.includes(role)) {
+        return roleMap[role] || 'employee';
+      }
+    }
+
+    return 'employee';
   }
 
   hasRole(role: string): boolean {
     const user = this.getCurrentUser();
     if (!user) return false;
-    return user.roles.includes(role);
+
+    const roleMapping: { [key: string]: string[] } = {
+      'admin': ['ROLE_ADMIN'],
+      'manager': ['ROLE_MANAGER', 'ROLE_ADMIN'],
+      'hr': ['ROLE_HR', 'ROLE_ADMIN'],
+      'accountant': ['ROLE_ACCOUNTANT', 'ROLE_ADMIN'],
+      'employee': ['ROLE_EMPLOYEE', 'ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_HR', 'ROLE_ACCOUNTANT']
+    };
+
+    const allowedRoles = roleMapping[role] || [];
+    return user.roles.some(userRole => allowedRoles.includes(userRole));
   }
 
   getBaseRoute(): string {
-    const user = this.getCurrentUser();
-    if (!user) return 'login';
-
-    if (this.hasRole('ROLE_ADMIN')) {
+    const role = this.getUserRole();
+    
+    if (role === 'admin') {
       return 'admin';
-    } else if (this.hasRole('ROLE_MANAGER') || this.hasRole('ROLE_HR') || this.hasRole('ROLE_ACCOUNTANT')) {
+    } else if (role === 'manager' || role === 'hr' || role === 'accountant') {
       return 'manager';
     } else {
       return 'employee';
     }
   }
 
-  // ✅ New method to refresh token (if you implement refresh tokens)
-  refreshToken(): Observable<AuthResponse> {
-    // Implement token refresh logic here if your backend supports it
-    return throwError(() => new Error('Token refresh not implemented'));
+  redirectBasedOnRole(): void {
+    const role = this.getUserRole();
+    console.log('🔄 Redirecting user with role:', role);
+    
+    const routes: { [key: string]: string } = {
+      'admin': '/admin/dashboard',
+      'manager': '/manager/dashboard', 
+      'hr': '/hr/dashboard',
+      'accountant': '/accountant/dashboard',
+      'employee': '/employee/dashboard'
+    };
+    
+    const route = routes[role] || '/login';
+    this.router.navigate([route]);
+  }
+
+  logout(): void {
+    console.log('👋 Logging out user');
+    this.clearAuthData();
+    this.currentUserSubject.next(null);
+    this.router.navigate(['/login']);
+  }
+
+
+
+  // ✅ ADDED: Check if user has employee record
+  hasEmployeeRecord(): boolean {
+    return !!this.getEmployeeId();
+  }
+
+  // ✅ ADDED: Get user info with employee data
+  getUserInfo(): any {
+    const user = this.getCurrentUser();
+    const token = this.getToken();
+    
+    return {
+      user: user,
+      employeeId: this.getEmployeeId(),
+      hasEmployee: this.hasEmployeeRecord(),
+      tokenInfo: token ? this.getTokenInfo() : null,
+      isAuthenticated: this.isAuthenticated(),
+      userRole: this.getUserRole(),
+      baseRoute: this.getBaseRoute()
+    };
+  }
+
+  getTokenInfo(): any {
+    const token = this.getToken();
+    if (!token) return null;
+    
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return {
+        issuedAt: new Date(payload.iat * 1000),
+        expiresAt: new Date(payload.exp * 1000),
+        subject: payload.sub,
+        roles: payload.roles || []
+      };
+    } catch (error) {
+      return null;
+    }
+  }
+
+  hasAnyRole(roles: string[]): boolean {
+    return roles.some(role => this.hasRole(role));
+  }
+
+  getAllUserRoles(): string[] {
+    const user = this.getCurrentUser();
+    return user ? user.roles : [];
+  }
+
+  isAdmin(): boolean {
+    return this.hasRole('admin');
+  }
+
+  isManagerOrAbove(): boolean {
+    return this.hasRole('manager') || this.hasRole('admin');
+  }
+
+  isHrOrAbove(): boolean {
+    return this.hasRole('hr') || this.hasRole('admin');
+  }
+
+  isAccountantOrAbove(): boolean {
+    return this.hasRole('accountant') || this.hasRole('admin');
   }
 }

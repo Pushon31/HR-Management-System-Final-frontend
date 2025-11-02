@@ -103,7 +103,7 @@ export class AttendanceReportComponent implements OnInit {
   }
 
   generateMonthlyReport(year: number, month: number): void {
-    // ✅ FIXED: Now using getAllAttendance which exists
+    // ✅ FIXED: Use getAllAttendance which exists
     this.attendanceService.getAllAttendance().subscribe({
       next: (allAttendance: Attendance[]) => {
         // Filter attendance for the selected month and year
@@ -131,7 +131,8 @@ export class AttendanceReportComponent implements OnInit {
       return;
     }
 
-    this.attendanceService.getMonthlyAttendance(employeeId, year, month).subscribe({
+    // ✅ FIXED: Use getEmployeeMonthlyAttendance instead of getMonthlyAttendance
+    this.attendanceService.getEmployeeMonthlyAttendance(employeeId, year, month).subscribe({
       next: (attendance: Attendance[]) => {
         console.log('✅ Employee report data:', attendance);
         this.attendanceData = attendance;
@@ -288,6 +289,20 @@ export class AttendanceReportComponent implements OnInit {
           backgroundColor: ['#28a745', '#ffc107', '#17a2b8', '#dc3545']
         }]
       };
+    } else if (formValue.reportType === 'employee') {
+      // Prepare chart data for employee report
+      this.chartData = {
+        labels: ['Present', 'Late', 'Half Day', 'Absent'],
+        datasets: [{
+          data: [
+            this.summary.totalPresent || 0,
+            this.summary.totalLate || 0,
+            this.summary.totalHalfDay || 0,
+            this.summary.totalAbsent || 0
+          ],
+          backgroundColor: ['#28a745', '#ffc107', '#17a2b8', '#dc3545']
+        }]
+      };
     }
   }
 
@@ -370,6 +385,17 @@ export class AttendanceReportComponent implements OnInit {
         <p><strong>Absent:</strong> ${this.summary.absent}</p>
         <p><strong>Attendance Rate:</strong> ${this.summary.presentPercentage?.toFixed(1)}%</p>
       `;
+    } else if (formValue.reportType === 'employee') {
+      return `
+        <h2>Employee: ${this.summary.employeeName} (${this.summary.employeeId})</h2>
+        <h3>Period: ${formValue.month}/${formValue.year}</h3>
+        <p><strong>Total Working Days:</strong> ${this.summary.totalWorkingDays}</p>
+        <p><strong>Present:</strong> ${this.summary.totalPresent}</p>
+        <p><strong>Late:</strong> ${this.summary.totalLate}</p>
+        <p><strong>Half Day:</strong> ${this.summary.totalHalfDay}</p>
+        <p><strong>Absent:</strong> ${this.summary.totalAbsent}</p>
+        <p><strong>Attendance Rate:</strong> ${this.summary.attendancePercentage?.toFixed(1)}%</p>
+      `;
     }
     
     return '<p>Report content would be generated here</p>';
@@ -414,5 +440,18 @@ export class AttendanceReportComponent implements OnInit {
       'HALF_DAY': 'bg-info'
     };
     return statusClasses[status] || 'bg-secondary';
+  }
+
+  // ✅ ADDED: Check user permissions
+  canGenerateReports(): boolean {
+    return this.authService.isAdmin() || this.authService.isManagerOrAbove();
+  }
+
+  // ✅ ADDED: Error message handling
+  errorMessage = '';
+
+  // ✅ ADDED: Get current user role
+  getUserRole(): string {
+    return this.authService.getUserRole();
   }
 }

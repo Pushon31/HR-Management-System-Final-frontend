@@ -1,8 +1,8 @@
-// attendance.service.ts
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { Attendance, AttendanceStatus, AttendanceSummary } from '../models/attendance.model';
+import { Observable, catchError, tap } from 'rxjs';
+import { Attendance, AttendanceStatus } from '../models/attendance.model';
+import { AuthService } from './auth.service';
 
 @Injectable({
   providedIn: 'root'
@@ -10,123 +10,201 @@ import { Attendance, AttendanceStatus, AttendanceSummary } from '../models/atten
 export class AttendanceService {
   private apiUrl = 'http://localhost:8080/api/attendance';
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private authService: AuthService
+  ) {}
 
-  // Check-in
-  checkIn(employeeId: string): Observable<Attendance> {
-    return this.http.post<Attendance>(`${this.apiUrl}/check-in/${employeeId}`, {});
+  // ✅ FIXED: Get current employee ID with proper error handling
+  private getCurrentEmployeeId(): string {
+    const employeeId = this.authService.getEmployeeId();
+    if (!employeeId) {
+      throw new Error('No employee ID found. Please login again.');
+    }
+    return employeeId;
   }
 
-  // Check-out
-  checkOut(employeeId: string): Observable<Attendance> {
-    return this.http.post<Attendance>(`${this.apiUrl}/check-out/${employeeId}`, {});
-  }
-
-  // Get today's attendance
-  getTodayAttendance(employeeId: string): Observable<Attendance> {
-    return this.http.get<Attendance>(`${this.apiUrl}/today/${employeeId}`);
-  }
-
-  // Get attendance by ID
-  getAttendanceById(id: number): Observable<Attendance> {
-    return this.http.get<Attendance>(`${this.apiUrl}/${id}`);
-  }
-
-  // Get all attendance records
   getAllAttendance(): Observable<Attendance[]> {
-    return this.http.get<Attendance[]>(this.apiUrl);
+    console.log('🔄 Fetching all attendance records');
+    return this.http.get<Attendance[]>(this.apiUrl)
+      .pipe(
+        tap(attendance => console.log(`✅ Loaded ${attendance.length} attendance records`)),
+        catchError((error: any) => {
+          console.error('❌ Error loading all attendance:', error);
+          throw error;
+        })
+      );
   }
 
-  // Get employee attendance history with date range
-  getEmployeeAttendanceHistory(
-    employeeId: string, 
-    startDate: string, 
-    endDate: string
-  ): Observable<Attendance[]> {
-    const params = new HttpParams()
+  // ✅ FIXED: Check-in without parameter
+  checkIn(): Observable<Attendance> {
+    const employeeId = this.getCurrentEmployeeId();
+    console.log('🔐 Checking in employee:', employeeId);
+    
+    return this.http.post<Attendance>(`${this.apiUrl}/check-in/${employeeId}`, {})
+      .pipe(
+        tap(response => console.log('✅ Check-in successful:', response)),
+        catchError((error: any) => {
+          console.error('❌ Check-in error:', error);
+          throw error;
+        })
+      );
+  }
+
+  // ✅ FIXED: Check-out without parameter
+  checkOut(): Observable<Attendance> {
+    const employeeId = this.getCurrentEmployeeId();
+    return this.http.post<Attendance>(`${this.apiUrl}/check-out/${employeeId}`, {})
+      .pipe(
+        catchError((error: any) => {
+          console.error('❌ Check-out error:', error);
+          throw error;
+        })
+      );
+  }
+
+  // ✅ FIXED: Get today's attendance without parameter
+  getTodayAttendance(): Observable<Attendance> {
+    const employeeId = this.getCurrentEmployeeId();
+    return this.http.get<Attendance>(`${this.apiUrl}/today/${employeeId}`)
+      .pipe(
+        catchError((error: any) => {
+          console.error('❌ Error loading today attendance:', error);
+          throw error;
+        })
+      );
+  }
+
+  // ✅ FIXED: Employee attendance history (for specific employee)
+  getEmployeeAttendanceHistory(employeeId: string, startDate: string, endDate: string): Observable<Attendance[]> {
+    let params = new HttpParams()
       .set('startDate', startDate)
       .set('endDate', endDate);
     
-    return this.http.get<Attendance[]>(`${this.apiUrl}/history/${employeeId}`, { params });
+    return this.http.get<Attendance[]>(`${this.apiUrl}/history/${employeeId}`, { params })
+      .pipe(
+        catchError((error: any) => {
+          console.error('❌ Error loading attendance history:', error);
+          throw error;
+        })
+      );
   }
 
-  // Get monthly attendance
-  getMonthlyAttendance(employeeId: string, year: number, month: number): Observable<Attendance[]> {
-    const params = new HttpParams()
+  // ✅ FIXED: Get current user's attendance history
+  getMyAttendanceHistory(startDate: string, endDate: string): Observable<Attendance[]> {
+    const employeeId = this.getCurrentEmployeeId();
+    return this.getEmployeeAttendanceHistory(employeeId, startDate, endDate);
+  }
+
+  // ✅ FIXED: Monthly attendance for specific employee
+  getEmployeeMonthlyAttendance(employeeId: string, year: number, month: number): Observable<Attendance[]> {
+    let params = new HttpParams()
       .set('year', year.toString())
       .set('month', month.toString());
     
-    return this.http.get<Attendance[]>(`${this.apiUrl}/monthly/${employeeId}`, { params });
+    return this.http.get<Attendance[]>(`${this.apiUrl}/monthly/${employeeId}`, { params })
+      .pipe(
+        catchError((error: any) => {
+          console.error('❌ Error loading monthly attendance:', error);
+          throw error;
+        })
+      );
   }
 
-  // Get attendance by date (for admin)
+  // ✅ FIXED: Get current user's monthly attendance
+  getMyMonthlyAttendance(year: number, month: number): Observable<Attendance[]> {
+    const employeeId = this.getCurrentEmployeeId();
+    return this.getEmployeeMonthlyAttendance(employeeId, year, month);
+  }
+
+  // ✅ FIXED: Attendance by date (Admin)
   getAttendanceByDate(date: string): Observable<Attendance[]> {
-    return this.http.get<Attendance[]>(`${this.apiUrl}/date/${date}`);
+    return this.http.get<Attendance[]>(`${this.apiUrl}/date/${date}`)
+      .pipe(
+        catchError((error: any) => {
+          console.error('❌ Error loading attendance by date:', error);
+          throw error;
+        })
+      );
   }
 
-  // Get today's attendance by status
-  getTodayAttendanceByStatus(status: AttendanceStatus): Observable<Attendance[]> {
-    return this.http.get<Attendance[]>(`${this.apiUrl}/today/status/${status}`);
+  // ✅ FIXED: Attendance summary for current user
+  getMyAttendanceSummary(year: number, month: number): Observable<any> {
+    const employeeId = this.getCurrentEmployeeId();
+    return this.calculateAttendanceSummary(employeeId, year, month);
   }
 
-  // Update attendance
-  updateAttendance(id: number, attendance: Attendance): Observable<Attendance> {
-    return this.http.put<Attendance>(`${this.apiUrl}/${id}`, attendance);
+  // ✅ FIXED: Calculate attendance summary with all parameters
+  calculateAttendanceSummary(employeeId: string, year: number, month: number): Observable<any> {
+    let params = new HttpParams()
+      .set('year', year.toString())
+      .set('month', month.toString());
+    
+    return this.http.get<any>(`${this.apiUrl}/summary/${employeeId}`, { params })
+      .pipe(
+        catchError((error: any) => {
+          console.error('❌ Error calculating attendance summary:', error);
+          throw error;
+        })
+      );
   }
 
-  // Delete attendance
-  deleteAttendance(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/${id}`);
-  }
-
-  // Reports
+  // ✅ NEW: Today's counts
   getTodayPresentCount(): Observable<number> {
-    return this.http.get<number>(`${this.apiUrl}/reports/today-present`);
+    return this.http.get<number>(`${this.apiUrl}/reports/today-present`)
+      .pipe(
+        catchError((error: any) => {
+          console.error('❌ Error loading today present count:', error);
+          throw error;
+        })
+      );
   }
 
   getTodayLateCount(): Observable<number> {
-    return this.http.get<number>(`${this.apiUrl}/reports/today-late`);
+    return this.http.get<number>(`${this.apiUrl}/reports/today-late`)
+      .pipe(
+        catchError((error: any) => {
+          console.error('❌ Error loading today late count:', error);
+          throw error;
+        })
+      );
   }
 
-  // Helper method to calculate attendance summary
-  calculateAttendanceSummary(attendanceList: Attendance[]): AttendanceSummary {
-    const employeeId = attendanceList[0]?.employeeId || '';
-    const employeeName = attendanceList[0]?.employeeName || '';
-    const departmentName = attendanceList[0]?.departmentName || '';
+  getTodayAbsentCount(): Observable<number> {
+    return this.http.get<number>(`${this.apiUrl}/reports/today-absent`)
+      .pipe(
+        catchError((error: any) => {
+          console.error('❌ Error loading today absent count:', error);
+          throw error;
+        })
+      );
+  }
 
-    const summary: AttendanceSummary = {
-      employeeId,
-      employeeName,
-      departmentName,
-      totalPresent: 0,
-      totalAbsent: 0,
-      totalLate: 0,
-      totalHalfDay: 0,
-      totalWorkingDays: attendanceList.length,
-      attendancePercentage: 0
-    };
+  // ✅ FIXED: Manual check-in/out methods
+  manualCheckIn(employeeId: string, checkInTime: string): Observable<Attendance> {
+    let params = new HttpParams().set('checkInTime', checkInTime);
+    return this.http.post<Attendance>(`${this.apiUrl}/manual/check-in/${employeeId}`, {}, { params })
+      .pipe(
+        catchError((error: any) => {
+          console.error('❌ Error in manual check-in:', error);
+          throw error;
+        })
+      );
+  }
 
-    attendanceList.forEach(attendance => {
-      switch (attendance.status) {
-        case AttendanceStatus.PRESENT:
-          summary.totalPresent++;
-          break;
-        case AttendanceStatus.ABSENT:
-          summary.totalAbsent++;
-          break;
-        case AttendanceStatus.LATE:
-          summary.totalLate++;
-          break;
-        case AttendanceStatus.HALF_DAY:
-          summary.totalHalfDay++;
-          break;
-      }
-    });
+  manualCheckOut(employeeId: string, checkOutTime: string): Observable<Attendance> {
+    let params = new HttpParams().set('checkOutTime', checkOutTime);
+    return this.http.post<Attendance>(`${this.apiUrl}/manual/check-out/${employeeId}`, {}, { params })
+      .pipe(
+        catchError((error: any) => {
+          console.error('❌ Error in manual check-out:', error);
+          throw error;
+        })
+      );
+  }
 
-    summary.attendancePercentage = summary.totalWorkingDays > 0 
-      ? (summary.totalPresent / summary.totalWorkingDays) * 100 
-      : 0;
-
-    return summary;
+  // ✅ ADDED: Check if current user has employee record
+  hasEmployeeRecord(): boolean {
+    return this.authService.hasEmployeeRecord();
   }
 }

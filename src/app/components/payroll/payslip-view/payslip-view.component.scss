@@ -1,0 +1,63 @@
+:host {
+  display: block;
+}
+
+.table {
+  font-size: 0.875rem;
+  
+  th {
+    font-weight: 600;
+    border-bottom: 2px solid #dee2e6;
+  }
+  
+  td {
+    vertical-align: middle;
+  }
+}
+
+.card {
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  border: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.btn-group-sm > .btn {
+  padding: 0.25rem 0.5rem;
+}
+
+.badge {
+  font-size: 0.75em;
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .table-responsive {
+    font-size: 0.8rem;
+  }
+  
+  .btn-group {
+    display: flex;
+    flex-direction: column;
+    
+    .btn {
+      margin-bottom: 0.25rem;
+    }
+  }
+}
+
+// Hover effects
+.table-hover tbody tr:hover {
+  background-color: rgba(0, 0, 0, 0.025);
+}
+
+// Status badge colors
+.badge {
+  &.bg-success { background-color: #198754 !important; }
+  &.bg-warning { background-color: #ffc107 !important; color: #000; }
+  &.bg-info { background-color: #0dcaf0 !important; }
+  &.bg-secondary { background-color: #6c757d !important; }
+}
+
+// Access denied styling
+.text-warning {
+  color: #ffc107 !important;
+}

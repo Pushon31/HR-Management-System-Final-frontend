@@ -5,6 +5,7 @@ export interface User {
   fullName: string;
   roles: string[];
   isActive: boolean;
+  employeeId?: string; // ✅ ADDED: Employee ID
   createdAt?: string;
   updatedAt?: string;
 }
@@ -16,7 +17,7 @@ export interface UserResponse {
   fullName: string;
   roles: string[];
   active: boolean;
-  employeeId?: number;
+  employeeId?: string; // ✅ CHANGED: from number to string
   employeeCode?: string;
   designation?: string;
   departmentName?: string;
@@ -34,7 +35,7 @@ export interface CreateUserRequest {
   password: string;
   fullName: string;
   roles: string[];
-  employeeId?: number;
+  employeeId?: string; // ✅ CHANGED: from number to string
 }
 
 export interface Role {

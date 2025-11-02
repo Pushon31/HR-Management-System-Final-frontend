@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { UserService } from '../../../services/user.service';
+import { AuthService } from '../../../services/auth.service'; // ✅ ADDED
 import { UserResponse, SYSTEM_ROLES, ROLE_DISPLAY_NAMES } from '../../../models/user.model';
 
 @Component({
@@ -21,7 +22,10 @@ export class UserListComponent implements OnInit {
   searchTerm = '';
   roleFilter = '';
 
-  constructor(private userService: UserService) {}
+  constructor(
+    private userService: UserService,
+    private authService: AuthService // ✅ ADDED
+  ) {}
 
   ngOnInit(): void {
     this.loadUsers();
@@ -29,20 +33,34 @@ export class UserListComponent implements OnInit {
 
   loadUsers(): void {
     this.loading = true;
+    this.error = '';
+    
+    // ✅ ADDED: Check if user is admin before loading
+    if (!this.authService.isAdmin()) {
+      this.error = 'You do not have permission to view users.';
+      this.loading = false;
+      return;
+    }
+
     this.userService.getAllUsers().subscribe({
       next: (users) => {
         this.users = users;
         this.totalItems = users.length;
         this.loading = false;
+        console.log('✅ Users loaded successfully:', users.length, 'users');
       },
       error: (error) => {
-        this.error = 'Failed to load users';
+        this.error = error.message || 'Failed to load users';
         this.loading = false;
-        console.error('Error loading users:', error);
+        console.error('❌ Error loading users:', error);
+        
+        // ✅ ADDED: Don't auto-logout, let user decide
+        if (error.message.includes('Authentication failed')) {
+          console.log('🔐 Authentication issue - suggest manual logout/login');
+        }
       }
     });
   }
-
   // Get filtered users based on search and role filter
   get filteredUsers(): UserResponse[] {
     let filtered = this.users;
@@ -81,7 +99,7 @@ export class UserListComponent implements OnInit {
     if (!user.fullName) return '??';
     const names = user.fullName.split(' ');
     const initials = names.map(n => n[0]).join('').toUpperCase();
-    return initials.slice(0, 2); // Take max 2 initials
+    return initials.slice(0, 2);
   }
 
   // Get display range for pagination
@@ -148,5 +166,34 @@ export class UserListComponent implements OnInit {
     this.searchTerm = '';
     this.roleFilter = '';
     this.currentPage = 1;
+  }
+
+  // ✅ ADDED: Create employee for existing user
+  createEmployeeForUser(user: UserResponse): void {
+    if (!confirm(`Create employee record for ${user.fullName}?`)) {
+      return;
+    }
+
+    this.userService.createEmployeeForUser(user.id).subscribe({
+      next: (response) => {
+        alert('Employee record created successfully!');
+        this.loadUsers(); // Refresh list
+      },
+      error: (error) => {
+        console.error('Error creating employee:', error);
+        alert('Failed to create employee: ' + (error.error?.message || error.message));
+      }
+    });
+  }
+
+  // ✅ ADDED: Check if user can create employee
+  canCreateEmployee(user: UserResponse): boolean {
+    const employeeRoles = ['ROLE_EMPLOYEE', 'ROLE_MANAGER', 'ROLE_HR', 'ROLE_ACCOUNTANT'];
+    return !user.employeeId && user.roles.some(role => employeeRoles.includes(role));
+  }
+
+  // ✅ ADDED: Check if user has employee record
+  hasEmployeeRecord(user: UserResponse): boolean {
+    return !!user.employeeId;
   }
 }

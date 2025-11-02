@@ -12,6 +12,13 @@
     </button>
   </div>
 
+  <!-- Success Alert -->
+  <div *ngIf="success" class="alert alert-success alert-dismissible fade show" role="alert">
+    <i class="fas fa-check-circle me-2"></i>
+    {{ success }}
+    <button type="button" class="btn-close" (click)="success = ''"></button>
+  </div>
+
   <!-- Error Alert -->
   <div *ngIf="error" class="alert alert-danger alert-dismissible fade show" role="alert">
     <i class="fas fa-exclamation-circle me-2"></i>
@@ -123,20 +130,6 @@
                   </div>
                 </div>
 
-                <!-- Employee ID -->
-                <div class="mb-4">
-                  <label for="employeeId" class="form-label">Employee ID</label>
-                  <input
-                    type="number"
-                    class="form-control"
-                    id="employeeId"
-                    formControlName="employeeId"
-                    placeholder="Optional - link to employee record">
-                  <div class="form-text">
-                    Link this user to an existing employee record (optional)
-                  </div>
-                </div>
-
                 <!-- Roles -->
                 <div class="mb-3">
                   <label class="form-label">System Roles *</label>
@@ -158,7 +151,35 @@
                     <div class="invalid-feedback d-block" *ngIf="f['roles'].invalid && f['roles'].touched">
                       At least one role must be selected
                     </div>
+                    
+                    <!-- ✅ ADDED: Employee creation info -->
+                    <div class="mt-3 p-2 bg-light rounded">
+                      <small class="text-info">
+                        <i class="fas fa-info-circle me-1"></i>
+                        <strong>Employee, Manager, HR, Accountant</strong> roles will automatically create employee records.
+                        <strong>Admin</strong> role will not create employee record.
+                      </small>
+                    </div>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Selected Roles Preview -->
+            <div class="row mt-3" *ngIf="f['roles'].value.length > 0">
+              <div class="col-12">
+                <div class="alert" [ngClass]="shouldCreateEmployee() ? 'alert-info' : 'alert-warning'">
+                  <i class="fas" [ngClass]="shouldCreateEmployee() ? 'fa-info-circle' : 'fa-exclamation-triangle'"></i>
+                  <strong>Selected Roles:</strong> 
+                  <span *ngFor="let role of f['roles'].value" class="badge bg-primary mx-1">
+                    {{ roleDisplayNames[role] }}
+                  </span>
+                  <span class="ms-2">
+                    {{ shouldCreateEmployee() ? 
+                        '✓ Employee record will be created automatically' : 
+                        '⚠ No employee record will be created (Admin role)' 
+                    }}
+                  </span>
                 </div>
               </div>
             </div>

@@ -1,4 +1,3 @@
-// attendance-history.component.ts
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup } from '@angular/forms';
 import { AuthService } from '../../../services/auth.service';
@@ -56,24 +55,45 @@ export class AttendanceHistoryComponent implements OnInit {
 
     this.loading = true;
     const formValue = this.searchForm.value;
-    const employeeId = this.currentUser.username;
+    
+    // ✅ FIXED: Use employee ID from auth service instead of username
+    const employeeId = this.authService.getEmployeeId();
 
+    if (!employeeId) {
+      console.error('❌ No employee ID found for user');
+      this.loading = false;
+      alert('No employee record found. Please contact administrator.');
+      return;
+    }
+
+    console.log('🔄 Loading attendance history for employee:', employeeId);
+
+    // ✅ FIXED: Use the proper method that takes employee ID and date range
     this.attendanceService.getEmployeeAttendanceHistory(
       employeeId, 
       formValue.startDate, 
       formValue.endDate
     ).subscribe({
       next: (attendance) => {
+        console.log('✅ Attendance history loaded:', attendance.length, 'records');
         this.attendanceHistory = attendance;
         this.applyFilters();
         this.calculateSummary();
         this.loading = false;
       },
       error: (error) => {
-        console.error('Error loading attendance history:', error);
+        console.error('❌ Error loading attendance history:', error);
         this.loading = false;
         this.attendanceHistory = [];
         this.filteredHistory = [];
+        
+        // Show appropriate error message
+        if (error.status === 404) {
+          this.errorMessage = 'No attendance records found for the selected period.';
+        } else {
+          this.errorMessage = 'Error loading attendance history. Please try again.';
+          alert('Error loading attendance history. Please try again.');
+        }
       }
     });
   }
@@ -90,13 +110,75 @@ export class AttendanceHistoryComponent implements OnInit {
     this.filteredHistory = filtered;
     this.totalItems = filtered.length;
     this.currentPage = 1;
-    this.updatePaginationArray();
     this.updateDisplayRange();
   }
 
   calculateSummary(): void {
-    const summary = this.attendanceService.calculateAttendanceSummary(this.attendanceHistory);
+    if (this.attendanceHistory.length === 0) {
+      this.summary = {
+        totalWorkingDays: 0,
+        totalPresent: 0,
+        totalLate: 0,
+        totalHalfDay: 0,
+        totalAbsent: 0,
+        attendancePercentage: 0
+      };
+      return;
+    }
+
+    const summary = {
+      totalWorkingDays: this.attendanceHistory.length,
+      totalPresent: this.attendanceHistory.filter(a => a.status === 'PRESENT').length,
+      totalLate: this.attendanceHistory.filter(a => a.status === 'LATE').length,
+      totalHalfDay: this.attendanceHistory.filter(a => a.status === 'HALF_DAY').length,
+      totalAbsent: this.attendanceHistory.filter(a => a.status === 'ABSENT').length,
+      attendancePercentage: 0
+    };
+
+    // ✅ FIXED: Calculate attendance percentage properly
+    summary.attendancePercentage = summary.totalWorkingDays > 0 
+      ? ((summary.totalPresent + summary.totalLate + summary.totalHalfDay) / summary.totalWorkingDays) * 100 
+      : 0;
+
     this.summary = summary;
+  }
+
+  exportToCSV(): void {
+    if (this.filteredHistory.length === 0) {
+      alert('No data to export');
+      return;
+    }
+
+    const headers = ['Date', 'Check-in', 'Check-out', 'Working Hours', 'Status', 'Remarks'];
+    
+    const csvData = this.filteredHistory.map(attendance => [
+      this.formatDate(attendance.attendanceDate),
+      this.formatTime(attendance.checkinTime),
+      this.formatTime(attendance.checkoutTime),
+      attendance.totalHours ? attendance.totalHours.toFixed(2) + ' hours' : this.calculateWorkingHours(attendance),
+      attendance.status,
+      attendance.remarks || 'N/A'
+    ]);
+
+    const csvContent = [headers, ...csvData]
+      .map(row => row.map(field => `"${field}"`).join(','))
+      .join('\n');
+
+    this.downloadCSV(csvContent, `attendance-history-${new Date().toISOString().split('T')[0]}.csv`);
+  }
+
+  private downloadCSV(content: string, filename: string): void {
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 
   onSearch(): void {
@@ -117,7 +199,7 @@ export class AttendanceHistoryComponent implements OnInit {
     this.loadAttendanceHistory();
   }
 
-  // Pagination methods
+  // ✅ FIXED: Pagination methods
   get paginatedHistory(): Attendance[] {
     const startIndex = (this.currentPage - 1) * this.itemsPerPage;
     return this.filteredHistory.slice(startIndex, startIndex + this.itemsPerPage);
@@ -132,9 +214,23 @@ export class AttendanceHistoryComponent implements OnInit {
     return Math.ceil(this.totalItems / this.itemsPerPage);
   }
 
-  // Add these missing methods
   get paginationArray(): number[] {
-    return Array(this.totalPages).fill(0).map((x, i) => i + 1);
+    const pages = [];
+    const totalPages = this.totalPages;
+    
+    // Show max 5 pages in pagination
+    let startPage = Math.max(1, this.currentPage - 2);
+    let endPage = Math.min(totalPages, startPage + 4);
+    
+    if (endPage - startPage < 4) {
+      startPage = Math.max(1, endPage - 4);
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i);
+    }
+    
+    return pages;
   }
 
   getDisplayRange(): string {
@@ -143,21 +239,18 @@ export class AttendanceHistoryComponent implements OnInit {
     return `Showing ${start} to ${end} of ${this.totalItems} entries`;
   }
 
-  // Helper methods to update display when data changes
-  private updatePaginationArray(): void {
-    // This forces the getter to recalculate
-    this.paginationArray;
-  }
-
   private updateDisplayRange(): void {
-    // This forces the getter to recalculate
-    this.getDisplayRange();
+    // This method is called to update the display range text
   }
 
   // Helper methods
   formatDate(dateString: string): string {
     if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-BD');
+    try {
+      return new Date(dateString).toLocaleDateString('en-BD');
+    } catch {
+      return 'Invalid Date';
+    }
   }
 
   formatTime(timeString: string): string {
@@ -229,33 +322,16 @@ export class AttendanceHistoryComponent implements OnInit {
     }
   }
 
-  exportToCSV(): void {
-    if (this.filteredHistory.length === 0) return;
+  // ✅ ADDED: Error message property
+  errorMessage = '';
 
-    const headers = ['Date', 'Check-in', 'Check-out', 'Total Hours', 'Status', 'Remarks'];
-    const csvData = this.filteredHistory.map(attendance => [
-      this.formatDate(attendance.attendanceDate),
-      this.formatTime(attendance.checkinTime),
-      this.formatTime(attendance.checkoutTime),
-      attendance.totalHours ? attendance.totalHours.toFixed(2) + ' hours' : this.calculateWorkingHours(attendance),
-      attendance.status,
-      attendance.remarks || 'N/A'
-    ]);
+  // ✅ ADDED: Check if user has employee record
+  hasEmployeeRecord(): boolean {
+    return this.authService.hasEmployeeRecord();
+  }
 
-    const csvContent = [headers, ...csvData]
-      .map(row => row.map(field => `"${field}"`).join(','))
-      .join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    
-    link.setAttribute('href', url);
-    link.setAttribute('download', `attendance-history-${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  // ✅ ADDED: Refresh data
+  refreshData(): void {
+    this.loadAttendanceHistory();
   }
 }
