@@ -72,7 +72,7 @@ export class CandidateListComponent implements OnInit {
 
   getJobTitle(jobId: number): string {
     const job = this.jobs.find(j => j.id === jobId);
-    return job ? job.title : 'Unknown Job';
+    return job ? job.jobTitle : 'Unknown Job';
   }
 
   getStatusBadgeClass(status: string): string {

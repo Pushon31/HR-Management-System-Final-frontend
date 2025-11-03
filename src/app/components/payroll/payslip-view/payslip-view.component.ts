@@ -56,30 +56,74 @@ export class PayslipViewComponent implements OnInit {
     }
   }
 
-  private loadPayslips(): void {
+ private loadPayslips(): void {
     this.isLoading = true;
     
     const currentDate = new Date();
     this.payPeriodFilter = `${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}`;
 
-    console.log('📄 Loading payslips...');
+    console.log('📄 Loading payslips for period:', this.payPeriodFilter);
     
-    this.payrollService.getPayslipsByPayPeriod(this.payPeriodFilter).subscribe({
-      next: (payslips) => {
-        console.log('✅ Payslips loaded:', payslips.length);
-        this.payslips = payslips;
-        this.filteredPayslips = payslips;
-        this.calculateStats();
-        this.isLoading = false;
-      },
-      error: (error) => {
-        console.error('❌ Error loading payslips:', error);
-        this.isLoading = false;
-        this.handleLoadError(error);
-      }
+    // First, check if we have payrolls for this period
+    this.payrollService.getPayrollsByPeriod(this.payPeriodFilter).subscribe({
+        next: (payrolls) => {
+            console.log('📊 Found payrolls:', payrolls.length);
+            
+            if (payrolls.length > 0) {
+                // Now load payslips
+                this.payrollService.getPayslipsByPayPeriod(this.payPeriodFilter).subscribe({
+                    next: (payslips) => {
+                        console.log('✅ Payslips loaded:', payslips.length);
+                        this.payslips = payslips;
+                        this.filteredPayslips = payslips;
+                        this.calculateStats();
+                        this.isLoading = false;
+                        
+                        // If no payslips but payrolls exist, suggest generating them
+                        if (payslips.length === 0 && payrolls.length > 0) {
+                            console.log('⚠️ Payrolls exist but no payslips found');
+                            if (confirm('Payroll data exists but payslips are not generated. Generate payslips now?')) {
+                                this.generateMissingPayslips(payrolls);
+                            }
+                        }
+                    },
+                    error: (error) => {
+                        console.error('❌ Error loading payslips:', error);
+                        this.isLoading = false;
+                    }
+                });
+            } else {
+                console.log('❌ No payrolls found for period:', this.payPeriodFilter);
+                this.payslips = [];
+                this.filteredPayslips = [];
+                this.calculateStats();
+                this.isLoading = false;
+            }
+        },
+        error: (error) => {
+            console.error('❌ Error checking payrolls:', error);
+            this.isLoading = false;
+        }
     });
-  }
+}
 
+private generateMissingPayslips(payrolls: any[]): void {
+    payrolls.forEach(payroll => {
+        this.payrollService.generatePayslip(payroll.id!).subscribe({
+            next: (payslip) => {
+                console.log('✅ Generated payslip for payroll:', payroll.id);
+            },
+            error: (error) => {
+                console.error('❌ Failed to generate payslip for payroll:', payroll.id, error);
+            }
+        });
+    });
+    
+    // Reload after a delay
+    setTimeout(() => {
+        this.loadPayslips();
+    }, 2000);
+}
   private handleLoadError(error: any): void {
     if (error.status === 401 || error.status === 403) {
       console.log('🔐 Access denied by server');

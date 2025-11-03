@@ -4,9 +4,9 @@ export interface Job {
   id?: number;
   // ✅ Backend compatible properties
   jobCode: string;
-  title: string;
+  jobTitle: string;  // Changed from 'title' to 'jobTitle'
   department: string;
-  description: string;
+  jobDescription: string;  // Changed from 'description' to 'jobDescription'
   requirements: string;
   experienceLevel: string;
   employmentType: string;
@@ -21,7 +21,8 @@ export interface Job {
   
   // ✅ Frontend display properties (optional)
   position?: string; // For backward compatibility
-  deadline?: string; // Alias for applicationDeadline
+  title?: string; // Alias for jobTitle
+  description?: string; // Alias for jobDescription
 }
 
 export interface Candidate {

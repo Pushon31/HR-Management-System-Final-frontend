@@ -131,7 +131,7 @@ export class InterviewScheduleComponent implements OnInit {
 
   getJobTitle(jobId: number): string {
     const job = this.jobs.find(j => j.id === jobId);
-    return job ? job.title : 'Unknown Job';
+    return job ? job.jobTitle : 'Unknown Job';
   }
 
   getInterviewerName(interviewerId: number): string {

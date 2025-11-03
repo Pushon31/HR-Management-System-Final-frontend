@@ -85,7 +85,7 @@ export class JobListComponent implements OnInit {
 
   applyFilters(): void {
     this.filteredJobs = this.jobs.filter(job => {
-      const matchesSearch = job.title.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+      const matchesSearch = job.jobTitle.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
                            job.department.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
                            (job.jobCode && job.jobCode.toLowerCase().includes(this.searchTerm.toLowerCase()));
       const matchesStatus = this.statusFilter === 'ALL' || job.status === this.statusFilter;

@@ -8,6 +8,37 @@
   <div class="card-body">
     <form [formGroup]="jobForm" (ngSubmit)="onSubmit()" novalidate>
       
+      <!-- Job Code (Auto-generated) -->
+      <div class="row mb-4" *ngIf="!isEdit">
+        <div class="col-12">
+          <h6 class="border-bottom pb-2">
+            <i class="fas fa-code me-2"></i>Job Identification
+          </h6>
+        </div>
+        <div class="col-md-6">
+          <div class="mb-3">
+            <label class="form-label">Job Code *</label>
+            <input type="text" class="form-control" formControlName="jobCode" 
+                   placeholder="Auto-generated job code" readonly
+                   [class.is-invalid]="isFieldInvalid('jobCode')">
+            <div class="invalid-feedback">
+              {{ getFieldError('jobCode') }}
+            </div>
+            <small class="form-text text-muted">
+              This job code is automatically generated and cannot be changed
+            </small>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="alert alert-info mt-4">
+            <small>
+              <i class="fas fa-info-circle me-2"></i>
+              Job code: <strong>{{ generatedJobCode }}</strong>
+            </small>
+          </div>
+        </div>
+      </div>
+
       <!-- Basic Information -->
       <div class="row mb-4">
         <div class="col-12">
@@ -19,11 +50,12 @@
         <div class="col-md-6">
           <div class="mb-3">
             <label class="form-label">Job Title *</label>
-            <input type="text" class="form-control" formControlName="title" 
+            <!-- ✅ CHANGED: formControlName="title" to formControlName="jobTitle" -->
+            <input type="text" class="form-control" formControlName="jobTitle" 
                    placeholder="e.g., Senior Quality Control Manager"
-                   [class.is-invalid]="isFieldInvalid('title')">
+                   [class.is-invalid]="isFieldInvalid('jobTitle')">
             <div class="invalid-feedback">
-              {{ getFieldError('title') }}
+              {{ getFieldError('jobTitle') }}
             </div>
           </div>
         </div>
@@ -95,12 +127,13 @@
 
         <div class="col-md-6">
           <div class="mb-3">
-            <label class="form-label">Experience Required *</label>
-            <input type="text" class="form-control" formControlName="experienceRequired" 
+            <label class="form-label">Experience Level *</label>
+            <!-- ✅ CHANGED: formControlName="experienceRequired" to formControlName="experienceLevel" -->
+            <input type="text" class="form-control" formControlName="experienceLevel" 
                    placeholder="e.g., 3-5 years in garment industry"
-                   [class.is-invalid]="isFieldInvalid('experienceRequired')">
+                   [class.is-invalid]="isFieldInvalid('experienceLevel')">
             <div class="invalid-feedback">
-              {{ getFieldError('experienceRequired') }}
+              {{ getFieldError('experienceLevel') }}
             </div>
           </div>
         </div>
@@ -141,10 +174,10 @@
         <div class="col-md-4">
           <div class="mb-3">
             <label class="form-label">Application Deadline *</label>
-            <input type="date" class="form-control" formControlName="deadline"
-                   [class.is-invalid]="isFieldInvalid('deadline')">
+            <input type="date" class="form-control" formControlName="applicationDeadline"
+                   [class.is-invalid]="isFieldInvalid('applicationDeadline')">
             <div class="invalid-feedback">
-              {{ getFieldError('deadline') }}
+              {{ getFieldError('applicationDeadline') }}
             </div>
           </div>
         </div>
@@ -154,6 +187,9 @@
             <label class="form-label">Skills Required</label>
             <textarea class="form-control" formControlName="skillsRequired" rows="3"
                       placeholder="List required skills (comma separated)"></textarea>
+            <small class="form-text text-muted">
+              Separate multiple skills with commas (e.g., Quality Control, Garment Manufacturing, Team Management)
+            </small>
           </div>
         </div>
       </div>
@@ -163,11 +199,12 @@
         <div class="col-md-6">
           <div class="mb-3">
             <label class="form-label">Job Description *</label>
-            <textarea class="form-control" formControlName="description" rows="6"
+            <!-- ✅ CHANGED: formControlName="description" to formControlName="jobDescription" -->
+            <textarea class="form-control" formControlName="jobDescription" rows="6"
                       placeholder="Detailed description of job responsibilities..."
-                      [class.is-invalid]="isFieldInvalid('description')"></textarea>
+                      [class.is-invalid]="isFieldInvalid('jobDescription')"></textarea>
             <div class="invalid-feedback">
-              {{ getFieldError('description') }}
+              {{ getFieldError('jobDescription') }}
             </div>
             <small class="form-text text-muted">
               Describe the day-to-day responsibilities of this position
@@ -204,6 +241,9 @@
             <label class="form-label">Benefits & Perks</label>
             <textarea class="form-control" formControlName="benefits" rows="3"
                       placeholder="List company benefits, perks, etc."></textarea>
+            <small class="form-text text-muted">
+              E.g., Provident Fund, Gratuity, Health Insurance, Lunch Facilities, etc.
+            </small>
           </div>
         </div>
 
@@ -254,14 +294,20 @@
           <i class="fas fa-save me-2"></i>
           {{ isEdit ? 'Update Job' : 'Create Job' }}
         </button>
-        <button type="button" class="btn btn-secondary" routerLink="/recruitment/jobs">
+        <button type="button" class="btn btn-secondary" routerLink="/admin/recruitment/jobs">
           <i class="fas fa-times me-2"></i>
           Cancel
         </button>
-        <button type="button" class="btn btn-outline-info" (click)="jobForm.reset()">
+        <button type="button" class="btn btn-outline-info" (click)="resetForm()" *ngIf="!isEdit">
           <i class="fas fa-redo me-2"></i>
           Reset Form
         </button>
+      </div>
+
+      <!-- Debug Information -->
+      <div class="mt-4 p-3 bg-light border rounded">
+        <h6 class="text-muted">Debug Info (Form Values):</h6>
+        <pre class="small mb-0">{{ jobForm.value | json }}</pre>
       </div>
     </form>
   </div>
