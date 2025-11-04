@@ -1,4 +1,3 @@
-// leave-history.component.ts
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup } from '@angular/forms';
 import { AuthService } from '../../../services/auth.service';
@@ -61,23 +60,50 @@ export class LeaveHistoryComponent implements OnInit {
   loadEmployeeData(): void {
     if (!this.currentUser) return;
 
-    this.employeeService.getEmployeeByEmployeeId(this.currentUser.username).subscribe({
-      next: (employee) => {
-        this.employeeData = employee;
-        this.loadLeaveHistory();
+    // Use email to find the employee from the list
+    this.employeeService.getAllEmployees().subscribe({
+      next: (employees) => {
+        const employee = employees.find(emp => 
+          emp.email === this.currentUser?.email
+        );
+        
+        if (employee) {
+          this.employeeData = employee;
+          this.loadLeaveHistory();
+        } else {
+          console.error('No employee found for current user email:', this.currentUser.email);
+          this.createFallbackEmployee();
+        }
       },
       error: (error) => {
         console.error('Error loading employee data:', error);
-        this.loading = false;
+        this.createFallbackEmployee();
       }
     });
   }
 
+  createFallbackEmployee(): void {
+    this.employeeData = {
+      id: 0,
+      firstName: this.currentUser?.firstName || 'User',
+      lastName: this.currentUser?.lastName || '',
+      employeeId: this.currentUser?.username || 'Unknown',
+      phoneNumber: '',
+      email: this.currentUser?.email || '',
+      departmentName: 'Unknown Department',
+      designation: 'Employee'
+    } as Employee;
+    this.loading = false;
+  }
+
   loadLeaveHistory(): void {
-    if (!this.employeeData) return;
+    if (!this.employeeData || this.employeeData.id === 0) {
+      console.error('Cannot load leave history: Invalid employee data');
+      this.loading = false;
+      return;
+    }
 
     this.loading = true;
-    const formValue = this.searchForm.value;
 
     this.leaveService.getLeaveApplicationsByEmployee(this.employeeData.id).subscribe({
       next: (applications) => {
@@ -146,7 +172,7 @@ export class LeaveHistoryComponent implements OnInit {
   }
 
   cancelLeave(leaveId: number): void {
-    if (!this.employeeData || !confirm('Are you sure you want to cancel this leave application?')) {
+    if (!this.employeeData || this.employeeData.id === 0 || !confirm('Are you sure you want to cancel this leave application?')) {
       return;
     }
 

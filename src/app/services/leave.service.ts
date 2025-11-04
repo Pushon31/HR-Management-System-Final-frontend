@@ -1,8 +1,9 @@
 // leave.service.ts
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { LeaveApplication, LeaveBalance, LeaveType, LeaveStatus } from '../models/leave.model';
+import { Observable, of } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
+import { LeaveApplication, LeaveBalance, LeaveType, LeaveStatus, LeaveCategory } from '../models/leave.model';
 
 @Injectable({
   providedIn: 'root'
@@ -23,7 +24,89 @@ export class LeaveService {
   }
 
   getActiveLeaveTypes(): Observable<LeaveType[]> {
-    return this.http.get<LeaveType[]>(`${this.apiUrl}/types/active`);
+    return this.http.get<LeaveType[]>(`${this.apiUrl}/types/active`).pipe(
+      // যদি backend থেকে data পায়
+      map(types => {
+        if (types && types.length > 0) {
+          console.log('✅ Leave types loaded from backend:', types.length);
+          return types;
+        } else {
+          // যদি backend empty array return করে
+          console.warn('⚠️ Backend returned empty leave types, using defaults');
+          return this.getDefaultLeaveTypes();
+        }
+      }),
+      // যদি backend error দেয়
+      catchError(error => {
+        console.error('❌ Backend error, using default leave types:', error);
+        return of(this.getDefaultLeaveTypes());
+      })
+    );
+  }
+
+  private getDefaultLeaveTypes(): LeaveType[] {
+    return [
+      {
+        id: 1,
+        name: 'Sick Leave',
+        code: 'SL',
+        category: LeaveCategory.SICK, // Use enum instead of string
+        description: 'Leave for health issues',
+        maxDaysPerYear: 14,
+        isActive: true,
+        requiresApproval: true,
+        allowEncashment: false,
+        carryForwardDays: 7
+      },
+      {
+        id: 2,
+        name: 'Casual Leave', 
+        code: 'CL',
+        category: LeaveCategory.PAID, // Use enum instead of string
+        description: 'Casual leave for personal work',
+        maxDaysPerYear: 10,
+        isActive: true,
+        requiresApproval: true,
+        allowEncashment: false,
+        carryForwardDays: 5
+      },
+      {
+        id: 3,
+        name: 'Annual Leave',
+        code: 'AL',
+        category: LeaveCategory.PAID, // Use enum instead of string
+        description: 'Annual vacation leave',
+        maxDaysPerYear: 21,
+        isActive: true,
+        requiresApproval: true,
+        allowEncashment: true,
+        carryForwardDays: 10
+      },
+      {
+        id: 4,
+        name: 'Maternity Leave',
+        code: 'ML',
+        category: LeaveCategory.MATERNITY, // Use enum instead of string
+        description: 'Maternity leave for female employees',
+        maxDaysPerYear: 180,
+        isActive: true,
+        requiresApproval: true,
+        allowEncashment: false,
+        carryForwardDays: 0
+      },
+      {
+        id: 5,
+        name: 'Paternity Leave',
+        code: 'PL',
+        category: LeaveCategory.PATERNITY, // Use enum instead of string
+        description: 'Paternity leave for male employees',
+        maxDaysPerYear: 15,
+        isActive: true,
+        requiresApproval: true,
+        allowEncashment: false,
+        carryForwardDays: 0
+      }
+    ];
   }
 
   getLeaveTypeById(id: number): Observable<LeaveType> {

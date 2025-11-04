@@ -31,6 +31,7 @@ export class EmployeeService {
   getAllEmployees(): Observable<Employee[]> {
     return this.http.get<Employee[]>(this.apiUrl);
   }
+  
 
   // Get employee by ID
   getEmployeeById(id: number): Observable<Employee> {

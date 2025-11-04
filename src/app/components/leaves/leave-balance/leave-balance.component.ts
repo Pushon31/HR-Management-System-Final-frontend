@@ -1,4 +1,3 @@
-// leave-balance.component.ts
 import { Component, OnInit } from '@angular/core';
 import { AuthService } from '../../../services/auth.service';
 import { LeaveService } from '../../../services/leave.service';
@@ -34,16 +33,40 @@ export class LeaveBalanceComponent implements OnInit {
 
     this.loading = true;
     
-    this.employeeService.getEmployeeByEmployeeId(this.currentUser.username).subscribe({
-      next: (employee) => {
-        this.employeeData = employee;
-        this.loadLeaveBalances(employee.id);
+    // Use email to find the employee from the list
+    this.employeeService.getAllEmployees().subscribe({
+      next: (employees) => {
+        const employee = employees.find(emp => 
+          emp.email === this.currentUser?.email
+        );
+        
+        if (employee) {
+          this.employeeData = employee;
+          this.loadLeaveBalances(employee.id);
+        } else {
+          console.error('No employee found for current user email:', this.currentUser.email);
+          this.createFallbackEmployee();
+        }
       },
       error: (error) => {
         console.error('Error loading employee data:', error);
-        this.loading = false;
+        this.createFallbackEmployee();
       }
     });
+  }
+
+  createFallbackEmployee(): void {
+    this.employeeData = {
+      id: 0,
+      firstName: this.currentUser?.firstName || 'User',
+      lastName: this.currentUser?.lastName || '',
+      employeeId: this.currentUser?.username || 'Unknown',
+      phoneNumber: '',
+      email: this.currentUser?.email || '',
+      departmentName: 'Unknown Department',
+      designation: 'Employee'
+    } as Employee;
+    this.loading = false;
   }
 
   loadLeaveBalances(employeeId: number): void {

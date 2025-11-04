@@ -60,15 +60,12 @@ export class LeaveApprovalComponent implements OnInit {
 
     this.loading = true;
     
+    // Use email to find the manager's employee record from the list
     this.employeeService.getAllEmployees().subscribe({
       next: (employees: Employee[]) => {
-        // ✅ FIX: Better matching logic for manager
-        const currentEmployee = employees.find(emp => {
-          // Try multiple matching strategies
-          return emp.email === this.currentUser.email || 
-                 emp.employeeId === this.currentUser.username ||
-                 (emp.firstName + ' ' + emp.lastName).toLowerCase() === this.currentUser.fullName?.toLowerCase();
-        });
+        const currentEmployee = employees.find(emp => 
+          emp.email === this.currentUser?.email
+        );
         
         if (currentEmployee) {
           this.managerData = currentEmployee;

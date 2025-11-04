@@ -1,4 +1,3 @@
-// leave-application.component.ts
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { AuthService } from '../../../services/auth.service';
@@ -84,20 +83,49 @@ export class LeaveApplicationComponent implements OnInit {
   loadEmployeeData(): void {
     if (!this.currentUser) return;
 
-    this.employeeService.getEmployeeByEmployeeId(this.currentUser.username).subscribe({
-      next: (employee) => {
-        this.employeeData = employee;
-        // Pre-fill contact number if available
-        if (employee.phoneNumber) {
-          this.leaveApplicationForm.patchValue({
-            contactNumber: employee.phoneNumber
-          });
+    this.loading = true;
+    
+    // Use email to find the employee from the list (this works based on debugging)
+    this.employeeService.getAllEmployees().subscribe({
+      next: (employees) => {
+        const employee = employees.find(emp => 
+          emp.email === this.currentUser?.email
+        );
+        
+        if (employee) {
+          this.employeeData = employee;
+          // Pre-fill contact number if available
+          if (employee.phoneNumber) {
+            this.leaveApplicationForm.patchValue({
+              contactNumber: employee.phoneNumber
+            });
+          }
+        } else {
+          console.error('No employee found for current user email:', this.currentUser.email);
+          this.createFallbackEmployee();
         }
+        this.loading = false;
       },
       error: (error) => {
         console.error('Error loading employee data:', error);
+        this.createFallbackEmployee();
       }
     });
+  }
+
+  createFallbackEmployee(): void {
+    console.log('Creating fallback employee data');
+    this.employeeData = {
+      id: 0, // This will be problematic for submission
+      firstName: this.currentUser?.firstName || 'User',
+      lastName: this.currentUser?.lastName || '',
+      employeeId: this.currentUser?.username || 'Unknown',
+      phoneNumber: '',
+      email: this.currentUser?.email || '',
+      departmentName: 'Unknown Department',
+      designation: 'Employee'
+    } as Employee;
+    this.loading = false;
   }
 
   loadLeaveTypes(): void {
@@ -158,6 +186,12 @@ export class LeaveApplicationComponent implements OnInit {
       return;
     }
 
+    // Check if we have a valid employee ID
+    if (this.employeeData.id === 0) {
+      alert('Cannot submit leave application: Employee data not found. Please contact administrator.');
+      return;
+    }
+
     this.submitting = true;
     const formValue = this.leaveApplicationForm.value;
 
@@ -210,7 +244,4 @@ export class LeaveApplicationComponent implements OnInit {
     const startDate = this.leaveApplicationForm.get('startDate')?.value;
     return startDate || this.today;
   }
-
-  // Remove the old methods and use the properties instead
-  // The properties are initialized in constructor
 }

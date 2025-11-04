@@ -40,18 +40,16 @@
             <!-- Leave Type -->
             <div class="form-group">
               <label for="leaveTypeId">Leave Type *</label>
-              <select 
-                class="form-control" 
-                id="leaveTypeId" 
-                formControlName="leaveTypeId"
+              <select class="form-control" id="leaveTypeId" formControlName="leaveTypeId"
                 [class.is-invalid]="leaveApplicationForm.get('leaveTypeId')?.invalid && leaveApplicationForm.get('leaveTypeId')?.touched">
                 <option value="">Select Leave Type</option>
                 <option *ngFor="let leaveType of leaveTypes" [value]="leaveType.id">
                   {{ leaveType.name }} ({{ leaveType.code }})
                 </option>
               </select>
-              <div *ngIf="leaveApplicationForm.get('leaveTypeId')?.invalid && leaveApplicationForm.get('leaveTypeId')?.touched" 
-                   class="invalid-feedback">
+              <div
+                *ngIf="leaveApplicationForm.get('leaveTypeId')?.invalid && leaveApplicationForm.get('leaveTypeId')?.touched"
+                class="invalid-feedback">
                 <div *ngIf="leaveApplicationForm.get('leaveTypeId')?.errors?.['required']">
                   Leave type is required
                 </div>
@@ -66,16 +64,12 @@
               <div class="col-md-6">
                 <div class="form-group">
                   <label for="startDate">Start Date *</label>
-                  <input 
-                    type="date" 
-                    class="form-control" 
-                    id="startDate" 
-                    formControlName="startDate"
-                    [min]="today"
+                  <input type="date" class="form-control" id="startDate" formControlName="startDate" [min]="today"
                     [max]="maxStartDate"
                     [class.is-invalid]="leaveApplicationForm.get('startDate')?.invalid && leaveApplicationForm.get('startDate')?.touched">
-                  <div *ngIf="leaveApplicationForm.get('startDate')?.invalid && leaveApplicationForm.get('startDate')?.touched" 
-                       class="invalid-feedback">
+                  <div
+                    *ngIf="leaveApplicationForm.get('startDate')?.invalid && leaveApplicationForm.get('startDate')?.touched"
+                    class="invalid-feedback">
                     Start date is required
                   </div>
                 </div>
@@ -83,16 +77,12 @@
               <div class="col-md-6">
                 <div class="form-group">
                   <label for="endDate">End Date *</label>
-                  <input 
-                    type="date" 
-                    class="form-control" 
-                    id="endDate" 
-                    formControlName="endDate"
-                    [min]="getMinEndDate()"
+                  <input type="date" class="form-control" id="endDate" formControlName="endDate" [min]="getMinEndDate()"
                     [max]="maxEndDate"
                     [class.is-invalid]="leaveApplicationForm.get('endDate')?.invalid && leaveApplicationForm.get('endDate')?.touched">
-                  <div *ngIf="leaveApplicationForm.get('endDate')?.invalid && leaveApplicationForm.get('endDate')?.touched" 
-                       class="invalid-feedback">
+                  <div
+                    *ngIf="leaveApplicationForm.get('endDate')?.invalid && leaveApplicationForm.get('endDate')?.touched"
+                    class="invalid-feedback">
                     <div *ngIf="leaveApplicationForm.get('endDate')?.errors?.['required']">
                       End date is required
                     </div>
@@ -115,15 +105,12 @@
             <!-- Contact Information -->
             <div class="form-group">
               <label for="contactNumber">Contact Number During Leave *</label>
-              <input 
-                type="tel" 
-                class="form-control" 
-                id="contactNumber" 
-                formControlName="contactNumber"
+              <input type="tel" class="form-control" id="contactNumber" formControlName="contactNumber"
                 placeholder="Enter contact number"
                 [class.is-invalid]="leaveApplicationForm.get('contactNumber')?.invalid && leaveApplicationForm.get('contactNumber')?.touched">
-              <div *ngIf="leaveApplicationForm.get('contactNumber')?.invalid && leaveApplicationForm.get('contactNumber')?.touched" 
-                   class="invalid-feedback">
+              <div
+                *ngIf="leaveApplicationForm.get('contactNumber')?.invalid && leaveApplicationForm.get('contactNumber')?.touched"
+                class="invalid-feedback">
                 Contact number is required
               </div>
             </div>
@@ -131,16 +118,13 @@
             <!-- Address During Leave -->
             <div class="form-group">
               <label for="addressDuringLeave">Address During Leave *</label>
-              <textarea 
-                class="form-control" 
-                id="addressDuringLeave" 
-                formControlName="addressDuringLeave"
-                rows="3"
+              <textarea class="form-control" id="addressDuringLeave" formControlName="addressDuringLeave" rows="3"
                 placeholder="Enter your address during leave period"
                 [class.is-invalid]="leaveApplicationForm.get('addressDuringLeave')?.invalid && leaveApplicationForm.get('addressDuringLeave')?.touched">
               </textarea>
-              <div *ngIf="leaveApplicationForm.get('addressDuringLeave')?.invalid && leaveApplicationForm.get('addressDuringLeave')?.touched" 
-                   class="invalid-feedback">
+              <div
+                *ngIf="leaveApplicationForm.get('addressDuringLeave')?.invalid && leaveApplicationForm.get('addressDuringLeave')?.touched"
+                class="invalid-feedback">
                 Address during leave is required
               </div>
             </div>
@@ -148,16 +132,12 @@
             <!-- Reason for Leave -->
             <div class="form-group">
               <label for="reason">Reason for Leave *</label>
-              <textarea 
-                class="form-control" 
-                id="reason" 
-                formControlName="reason"
-                rows="4"
+              <textarea class="form-control" id="reason" formControlName="reason" rows="4"
                 placeholder="Please provide detailed reason for your leave application..."
                 [class.is-invalid]="leaveApplicationForm.get('reason')?.invalid && leaveApplicationForm.get('reason')?.touched">
               </textarea>
-              <div *ngIf="leaveApplicationForm.get('reason')?.invalid && leaveApplicationForm.get('reason')?.touched" 
-                   class="invalid-feedback">
+              <div *ngIf="leaveApplicationForm.get('reason')?.invalid && leaveApplicationForm.get('reason')?.touched"
+                class="invalid-feedback">
                 <div *ngIf="leaveApplicationForm.get('reason')?.errors?.['required']">
                   Reason for leave is required
                 </div>
@@ -176,24 +156,20 @@
               <p class="mb-1"><strong>Category:</strong> {{ getSelectedLeaveType()?.category }}</p>
               <p class="mb-1"><strong>Max Days Per Year:</strong> {{ getSelectedLeaveType()?.maxDaysPerYear }}</p>
               <p class="mb-1"><strong>Carry Forward:</strong> {{ getSelectedLeaveType()?.carryForwardDays }} days</p>
-              <p class="mb-0"><strong>Approval Required:</strong> {{ getSelectedLeaveType()?.requiresApproval ? 'Yes' : 'No' }}</p>
+              <p class="mb-0"><strong>Approval Required:</strong> {{ getSelectedLeaveType()?.requiresApproval ? 'Yes' :
+                'No' }}</p>
             </div>
 
             <!-- Submit Button -->
             <div class="form-group text-center mt-4">
-              <button 
-                type="submit" 
-                class="btn btn-success btn-lg px-5"
+              <button type="submit" class="btn btn-success btn-lg px-5"
                 [disabled]="submitting || leaveApplicationForm.invalid">
                 <span *ngIf="submitting" class="spinner-border spinner-border-sm mr-2"></span>
                 <i class="fas fa-paper-plane mr-2"></i>
                 {{ submitting ? 'Submitting...' : 'Submit Leave Application' }}
               </button>
-              
-              <button 
-                type="button" 
-                class="btn btn-secondary btn-lg px-5 ml-2"
-                routerLink="/employee/dashboard">
+
+              <button type="button" class="btn btn-secondary btn-lg px-5 ml-2" routerLink="/employee/dashboard">
                 <i class="fas fa-times mr-2"></i>
                 Cancel
               </button>

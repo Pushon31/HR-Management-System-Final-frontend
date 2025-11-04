@@ -50,6 +50,7 @@ export interface LeaveType {
   carryForwardDays: number;
 }
 
+// Make sure this enum matches your backend exactly
 export enum LeaveStatus {
   PENDING = 'PENDING',
   APPROVED = 'APPROVED',
@@ -57,6 +58,7 @@ export enum LeaveStatus {
   CANCELLED = 'CANCELLED'
 }
 
+// Update this enum to match your backend exactly
 export enum LeaveCategory {
   PAID = 'PAID',
   UNPAID = 'UNPAID',
