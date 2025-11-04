@@ -77,74 +77,85 @@ export class UserFormComponent implements OnInit {
     });
   }
 
-  onSubmit(): void {
+onSubmit(): void {
     if (this.userForm.valid) {
-      this.submitting = true;
-      this.error = '';
-      this.success = '';
+        this.submitting = true;
+        this.error = '';
+        this.success = '';
 
-      const formData = this.userForm.value;
-
-      if (this.isEditMode && this.userId) {
-        // Update existing user
-        this.userService.updateUser(this.userId, formData).subscribe({
-          next: () => {
-            this.submitting = false;
-            this.success = 'User updated successfully!';
-            setTimeout(() => {
-              this.router.navigate(['/admin/users']);
-            }, 2000);
-          },
-          error: (error) => {
-            this.error = 'Failed to update user: ' + (error.error?.message || error.message);
-            this.submitting = false;
-            console.error('Error updating user:', error);
-          }
-        });
-      } else {
-        // Create new user
-        const createRequest: CreateUserRequest = {
-          username: formData.username,
-          email: formData.email,
-          password: formData.password,
-          fullName: formData.fullName,
-          roles: formData.roles
+        const formData = this.userForm.value;
+        
+        // ✅ FIX: Password field handle - if empty in edit mode, don't send
+        const updateData: any = {
+            username: formData.username,
+            email: formData.email,
+            fullName: formData.fullName,
+            roles: formData.roles
         };
 
-        console.log('🔄 UserForm: Submitting create request:', createRequest);
-        
-        this.userService.createUser(createRequest).subscribe({
-          next: (response) => {
-            console.log('✅ UserForm: User created successfully', response);
-            this.submitting = false;
-            
-            // ✅ ADDED: Show success message with employee creation status
-            if (response.employeeCreated) {
-              this.success = `User created successfully! Employee record created with ID: ${response.employeeId}`;
-            } else {
-              this.success = 'User created successfully! (No employee record created for admin role)';
-            }
+        // Only include password if it's provided (and not empty)
+        if (formData.password && formData.password.trim() !== '') {
+            updateData.password = formData.password;
+        }
 
-            // Redirect after 3 seconds
-            setTimeout(() => {
-              this.router.navigate(['/admin/users']);
-            }, 3000);
-          },
-          error: (error) => {
-            this.error = 'Failed to create user: ' + (error.error?.message || error.message);
-            this.submitting = false;
-            console.error('❌ Error creating user:', error);
-          }
-        });
-      }
+        if (this.isEditMode && this.userId) {
+            // Update existing user
+            this.userService.updateUser(this.userId, updateData).subscribe({
+                next: (response) => {
+                    this.submitting = false;
+                    this.success = 'User updated successfully!';
+                    setTimeout(() => {
+                        this.router.navigate(['/admin/users']);
+                    }, 2000);
+                },
+                error: (error) => {
+                    this.submitting = false;
+                    // ✅ Better error message extraction
+                    const errorMsg = error.error?.message || error.message || 'Failed to update user';
+                    this.error = errorMsg;
+                    console.error('Error updating user:', error);
+                }
+            });
+        } else {
+            // Create new user - include password required
+            const createRequest: CreateUserRequest = {
+                username: formData.username,
+                email: formData.email,
+                password: formData.password, // Required for creation
+                fullName: formData.fullName,
+                roles: formData.roles
+            };
+
+            this.userService.createUser(createRequest).subscribe({
+                next: (response) => {
+                    this.submitting = false;
+                    
+                    // ✅ Enhanced success message with employee info
+                    if (response.employeeCreated) {
+                        this.success = `User created successfully! Employee record created with ID: ${response.employeeCode} and designation: ${response.designation}`;
+                    } else {
+                        this.success = 'User created successfully! (Admin role - no employee record)';
+                    }
+
+                    setTimeout(() => {
+                        this.router.navigate(['/admin/users']);
+                    }, 3000);
+                },
+                error: (error) => {
+                    this.submitting = false;
+                    const errorMsg = error.error?.message || error.message || 'Failed to create user';
+                    this.error = errorMsg;
+                    console.error('Error creating user:', error);
+                }
+            });
+        }
     } else {
-      // Mark all fields as touched to show validation errors
-      Object.keys(this.userForm.controls).forEach(key => {
-        this.userForm.get(key)?.markAsTouched();
-      });
+        // Mark all fields as touched to show validation errors
+        Object.keys(this.userForm.controls).forEach(key => {
+            this.userForm.get(key)?.markAsTouched();
+        });
     }
-  }
-
+}
   // Convenience getter for easy access to form fields
   get f() { return this.userForm.controls; }
 

@@ -8,7 +8,8 @@ import { User, CreateUserRequest, UserResponse, UpdateRolesRequest } from '../mo
   providedIn: 'root'
 })
 export class UserService {
-  private apiUrl = 'http://localhost:8080/api/users';
+  // ✅ FIXED: Correct API URL - admin path
+  private apiUrl = 'http://localhost:8080/api/admin/users';
   private authUrl = 'http://localhost:8080/api/auth';
 
   constructor(private http: HttpClient) {}
@@ -36,7 +37,8 @@ export class UserService {
   }
 
   createUser(userData: CreateUserRequest): Observable<any> {
-    console.log('🔄 Creating user with data:', userData);
+    console.log('🔄 UserService: Creating user with data:', userData);
+    
     return this.http.post(`${this.authUrl}/signup`, userData).pipe(
       catchError((error) => {
         console.error('❌ UserService: Failed to create user', error);
@@ -45,14 +47,35 @@ export class UserService {
     );
   }
 
-  getUserById(id: number): Observable<UserResponse> {
-    return this.http.get<UserResponse>(`${this.apiUrl}/${id}`).pipe(
+  createUserWithEmployee(userData: CreateUserRequest): Observable<any> {
+    console.log('🔄 UserService: Creating user with employee auto-creation');
+    
+    return this.http.post(`${this.authUrl}/signup-with-employee`, userData).pipe(
       catchError((error) => {
-        console.error('❌ UserService: Failed to get user', error);
+        console.error('❌ UserService: Failed to create user with employee', error);
         return throwError(() => error);
       })
     );
   }
+
+  // ✅ FIXED: Now this will point to correct endpoint
+  createEmployeeForUser(userId: number, employeeData?: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/${userId}/create-employee`, employeeData).pipe(
+      catchError((error) => {
+        console.error('❌ Failed to create employee for user', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+getUserById(id: number): Observable<UserResponse> {
+  return this.http.get<UserResponse>(`${this.apiUrl}/${id}`).pipe(
+    catchError((error) => {
+      console.error('❌ UserService: Failed to get user', error);
+      return throwError(() => error);
+    })
+  );
+}
 
   updateUser(id: number, userData: any): Observable<UserResponse> {
     return this.http.put<UserResponse>(`${this.apiUrl}/${id}`, userData);
@@ -72,10 +95,6 @@ export class UserService {
 
   activateUser(id: number): Observable<UserResponse> {
     return this.http.put<UserResponse>(`${this.apiUrl}/${id}/activate`, {});
-  }
-
-  createEmployeeForUser(userId: number): Observable<any> {
-    return this.http.post(`${this.authUrl}/create-employee/${userId}`, {});
   }
 
   getUserWithEmployee(username: string): Observable<any> {

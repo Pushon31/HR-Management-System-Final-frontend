@@ -31,36 +31,63 @@ export class UserListComponent implements OnInit {
     this.loadUsers();
   }
 
-  loadUsers(): void {
+ loadUsers(): void {
     this.loading = true;
     this.error = '';
     
     // ✅ ADDED: Check if user is admin before loading
     if (!this.authService.isAdmin()) {
-      this.error = 'You do not have permission to view users.';
-      this.loading = false;
-      return;
+        this.error = 'You do not have permission to view users. Only ADMIN users can access this page.';
+        this.loading = false;
+        return;
     }
 
     this.userService.getAllUsers().subscribe({
-      next: (users) => {
-        this.users = users;
-        this.totalItems = users.length;
-        this.loading = false;
-        console.log('✅ Users loaded successfully:', users.length, 'users');
-      },
-      error: (error) => {
-        this.error = error.message || 'Failed to load users';
-        this.loading = false;
-        console.error('❌ Error loading users:', error);
-        
-        // ✅ ADDED: Don't auto-logout, let user decide
-        if (error.message.includes('Authentication failed')) {
-          console.log('🔐 Authentication issue - suggest manual logout/login');
+        next: (users) => {
+            this.users = users;
+            this.totalItems = users.length;
+            this.loading = false;
+            console.log('✅ Users loaded successfully:', users.length, 'users');
+        },
+        error: (error) => {
+            this.error = error.message || 'Failed to load users';
+            this.loading = false;
+            console.error('❌ Error loading users:', error);
         }
-      }
     });
-  }
+}
+
+createEmployeeForUser(user: UserResponse): void {
+    const designation = prompt(`Enter designation for ${user.fullName}:`, 
+        this.getDefaultDesignation(user.roles));
+    
+    if (designation) {
+        const employeeData = {
+            designation: designation,
+            status: 'ACTIVE', 
+            workType: 'ONSITE',
+            employeeType: 'FULL_TIME'
+        };
+        
+        this.userService.createEmployeeForUser(user.id, employeeData).subscribe({
+            next: (response) => {
+                alert(`Employee record created successfully!\nEmployee ID: ${response.employeeCode}\nDesignation: ${response.designation}`);
+                this.loadUsers(); // Refresh list
+            },
+            error: (error) => {
+                console.error('Error creating employee:', error);
+                alert('Failed to create employee: ' + (error.error?.message || error.message));
+            }
+        });
+    }
+}
+
+private getDefaultDesignation(roles: string[]): string {
+    if (roles.includes('ROLE_MANAGER')) return 'Manager';
+    if (roles.includes('ROLE_HR')) return 'HR Manager';
+    if (roles.includes('ROLE_ACCOUNTANT')) return 'Accountant';
+    return 'Employee';
+}
   // Get filtered users based on search and role filter
   get filteredUsers(): UserResponse[] {
     let filtered = this.users;
@@ -168,23 +195,7 @@ export class UserListComponent implements OnInit {
     this.currentPage = 1;
   }
 
-  // ✅ ADDED: Create employee for existing user
-  createEmployeeForUser(user: UserResponse): void {
-    if (!confirm(`Create employee record for ${user.fullName}?`)) {
-      return;
-    }
 
-    this.userService.createEmployeeForUser(user.id).subscribe({
-      next: (response) => {
-        alert('Employee record created successfully!');
-        this.loadUsers(); // Refresh list
-      },
-      error: (error) => {
-        console.error('Error creating employee:', error);
-        alert('Failed to create employee: ' + (error.error?.message || error.message));
-      }
-    });
-  }
 
   // ✅ ADDED: Check if user can create employee
   canCreateEmployee(user: UserResponse): boolean {
@@ -196,4 +207,7 @@ export class UserListComponent implements OnInit {
   hasEmployeeRecord(user: UserResponse): boolean {
     return !!user.employeeId;
   }
+
+
+
 }
