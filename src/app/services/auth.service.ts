@@ -265,21 +265,7 @@ private clearAuthData(): void {
     return 'employee';
   }
 
-  hasRole(role: string): boolean {
-    const user = this.getCurrentUser();
-    if (!user) return false;
 
-    const roleMapping: { [key: string]: string[] } = {
-      'admin': ['ROLE_ADMIN'],
-      'manager': ['ROLE_MANAGER', 'ROLE_ADMIN'],
-      'hr': ['ROLE_HR', 'ROLE_ADMIN'],
-      'accountant': ['ROLE_ACCOUNTANT', 'ROLE_ADMIN'],
-      'employee': ['ROLE_EMPLOYEE', 'ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_HR', 'ROLE_ACCOUNTANT']
-    };
-
-    const allowedRoles = roleMapping[role] || [];
-    return user.roles.some(userRole => allowedRoles.includes(userRole));
-  }
 
   getBaseRoute(): string {
     const role = this.getUserRole();
@@ -380,4 +366,50 @@ private clearAuthData(): void {
   isAccountantOrAbove(): boolean {
     return this.hasRole('accountant') || this.hasRole('admin');
   }
+
+hasRole(role: string): boolean {
+  const user = this.getCurrentUser();
+  if (!user || !user.roles) {
+    console.log('🔍 AuthService: No user or roles found');
+    return false;
+  }
+
+  console.log('🔍 AuthService: Checking role', role, 'in user roles:', user.roles);
+
+  // Handle both role formats: 'admin' and 'ROLE_ADMIN'
+  const roleFormats = [
+    role, // original format ('admin')
+    `ROLE_${role.toUpperCase()}`, // convert 'admin' to 'ROLE_ADMIN'
+    role.toUpperCase() // convert 'admin' to 'ADMIN'
+  ];
+
+  const roleMapping: { [key: string]: string[] } = {
+    'admin': ['ROLE_ADMIN'],
+    'manager': ['ROLE_MANAGER', 'ROLE_ADMIN'],
+    'hr': ['ROLE_HR', 'ROLE_ADMIN'],
+    'accountant': ['ROLE_ACCOUNTANT', 'ROLE_ADMIN'],
+    'employee': ['ROLE_EMPLOYEE', 'ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_HR', 'ROLE_ACCOUNTANT']
+  };
+
+  // Get allowed roles for the requested role
+  const allowedRoles = roleMapping[role] || [];
+  
+  // Check if user has any of the allowed roles OR any of the role formats
+  const hasRole = user.roles.some(userRole => 
+    allowedRoles.includes(userRole) || 
+    roleFormats.includes(userRole)
+  );
+
+  console.log('🔍 AuthService: Role check result:', hasRole);
+  console.log('🔍 Allowed roles:', allowedRoles);
+  console.log('🔍 Role formats:', roleFormats);
+  
+  return hasRole;
+}
+
+// Or create a separate method for role checking with the role string format you're using
+hasRoleString(roleString: string): boolean {
+  const user = this.getCurrentUser();
+  return user ? user.roles.includes(roleString) : false;
+}
 }

@@ -1,8 +1,8 @@
 // leave.service.ts
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, of } from 'rxjs';
-import { map, catchError } from 'rxjs/operators';
+import { Observable, of, throwError } from 'rxjs';
+import { map, catchError, tap } from 'rxjs/operators';
 import { LeaveApplication, LeaveBalance, LeaveType, LeaveStatus, LeaveCategory } from '../models/leave.model';
 
 @Injectable({
@@ -124,15 +124,42 @@ export class LeaveService {
   // ==================== LEAVE APPLICATION METHODS ====================
 
   applyForLeave(leaveApplication: LeaveApplication): Observable<LeaveApplication> {
-    return this.http.post<LeaveApplication>(`${this.apiUrl}/applications`, leaveApplication);
+    console.log('🔄 LeaveService: Submitting leave application...', leaveApplication);
+    return this.http.post<LeaveApplication>(`${this.apiUrl}/applications`, leaveApplication).pipe(
+      tap(response => {
+        console.log('✅ LeaveService: Leave application submitted successfully!', response);
+      }),
+      catchError(error => {
+        console.error('❌ LeaveService: Error submitting leave application:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   getAllLeaveApplications(): Observable<LeaveApplication[]> {
-    return this.http.get<LeaveApplication[]>(`${this.apiUrl}/applications`);
+    console.log('🔄 LeaveService: Fetching ALL leave applications...');
+    return this.http.get<LeaveApplication[]>(`${this.apiUrl}/applications`).pipe(
+      tap(leaves => {
+        console.log('✅ LeaveService: Received ALL leaves:', leaves.length);
+      }),
+      catchError(error => {
+        console.error('❌ LeaveService: Error fetching all leaves:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   getLeaveApplicationsByEmployee(employeeId: number): Observable<LeaveApplication[]> {
-    return this.http.get<LeaveApplication[]>(`${this.apiUrl}/applications/employee/${employeeId}`);
+    console.log('🔄 LeaveService: Fetching leaves for employee:', employeeId);
+    return this.http.get<LeaveApplication[]>(`${this.apiUrl}/applications/employee/${employeeId}`).pipe(
+      tap(leaves => {
+        console.log('✅ LeaveService: Received employee leaves:', leaves.length);
+      }),
+      catchError(error => {
+        console.error('❌ LeaveService: Error fetching employee leaves:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   getLeaveApplicationById(id: number): Observable<LeaveApplication> {
@@ -140,15 +167,51 @@ export class LeaveService {
   }
 
   getPendingLeaveApplications(): Observable<LeaveApplication[]> {
-    return this.http.get<LeaveApplication[]>(`${this.apiUrl}/applications/pending`);
+    console.log('🔄 LeaveService: Calling GET /api/leaves/applications/pending');
+    
+    return this.http.get<LeaveApplication[]>(`${this.apiUrl}/applications/pending`).pipe(
+      tap(leaves => {
+        console.log('✅ LeaveService: Received response with', leaves.length, 'pending leaves');
+        console.log('📄 Pending leaves data:', leaves);
+      }),
+      catchError(error => {
+        console.error('❌ LeaveService: Error fetching pending leaves:', error);
+        console.error('🔧 Error status:', error.status);
+        console.error('📄 Error message:', error.message);
+        console.error('🔍 Full error:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   getPendingLeavesForManager(managerId: number): Observable<LeaveApplication[]> {
-    return this.http.get<LeaveApplication[]>(`${this.apiUrl}/applications/manager/${managerId}/pending`);
+    console.log('🔄 LeaveService: Calling GET /api/leaves/applications/manager/' + managerId + '/pending');
+    
+    return this.http.get<LeaveApplication[]>(`${this.apiUrl}/applications/manager/${managerId}/pending`).pipe(
+      tap(leaves => {
+        console.log('✅ LeaveService: Received manager leaves:', leaves.length);
+        console.log('📄 Manager leaves data:', leaves);
+      }),
+      catchError(error => {
+        console.error('❌ LeaveService: Error fetching manager leaves:', error);
+        console.error('🔧 Error status:', error.status);
+        console.error('📄 Error message:', error.message);
+        return throwError(() => error);
+      })
+    );
   }
 
   getLeaveApplicationsByStatus(status: LeaveStatus): Observable<LeaveApplication[]> {
-    return this.http.get<LeaveApplication[]>(`${this.apiUrl}/applications/status/${status}`);
+    console.log('🔄 LeaveService: Fetching leaves by status:', status);
+    return this.http.get<LeaveApplication[]>(`${this.apiUrl}/applications/status/${status}`).pipe(
+      tap(leaves => {
+        console.log('✅ LeaveService: Received status leaves:', leaves.length);
+      }),
+      catchError(error => {
+        console.error('❌ LeaveService: Error fetching status leaves:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   getLeavesByDateRange(startDate: string, endDate: string): Observable<LeaveApplication[]> {
@@ -165,23 +228,56 @@ export class LeaveService {
   // ==================== LEAVE APPROVAL METHODS ====================
 
   approveLeave(leaveId: number, approvedBy: number, remarks?: string): Observable<LeaveApplication> {
+    console.log('🔄 LeaveService: Approving leave:', leaveId, 'by:', approvedBy);
+    
     const params = new HttpParams()
       .set('approvedBy', approvedBy.toString())
       .set('remarks', remarks || '');
-    return this.http.put<LeaveApplication>(`${this.apiUrl}/applications/${leaveId}/approve`, {}, { params });
+    
+    return this.http.put<LeaveApplication>(`${this.apiUrl}/applications/${leaveId}/approve`, {}, { params }).pipe(
+      tap(response => {
+        console.log('✅ LeaveService: Leave approved successfully!', response);
+      }),
+      catchError(error => {
+        console.error('❌ LeaveService: Error approving leave:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   rejectLeave(leaveId: number, approvedBy: number, remarks?: string): Observable<LeaveApplication> {
+    console.log('🔄 LeaveService: Rejecting leave:', leaveId, 'by:', approvedBy);
+    
     const params = new HttpParams()
       .set('approvedBy', approvedBy.toString())
       .set('remarks', remarks || '');
-    return this.http.put<LeaveApplication>(`${this.apiUrl}/applications/${leaveId}/reject`, {}, { params });
+    
+    return this.http.put<LeaveApplication>(`${this.apiUrl}/applications/${leaveId}/reject`, {}, { params }).pipe(
+      tap(response => {
+        console.log('✅ LeaveService: Leave rejected successfully!', response);
+      }),
+      catchError(error => {
+        console.error('❌ LeaveService: Error rejecting leave:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   cancelLeave(leaveId: number, employeeId: number): Observable<LeaveApplication> {
+    console.log('🔄 LeaveService: Cancelling leave:', leaveId, 'by employee:', employeeId);
+    
     const params = new HttpParams()
       .set('employeeId', employeeId.toString());
-    return this.http.put<LeaveApplication>(`${this.apiUrl}/applications/${leaveId}/cancel`, {}, { params });
+    
+    return this.http.put<LeaveApplication>(`${this.apiUrl}/applications/${leaveId}/cancel`, {}, { params }).pipe(
+      tap(response => {
+        console.log('✅ LeaveService: Leave cancelled successfully!', response);
+      }),
+      catchError(error => {
+        console.error('❌ LeaveService: Error cancelling leave:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   updateLeaveApplication(id: number, leaveApplication: LeaveApplication): Observable<LeaveApplication> {
@@ -191,7 +287,17 @@ export class LeaveService {
   // ==================== LEAVE BALANCE METHODS ====================
 
   getEmployeeLeaveBalances(employeeId: number): Observable<LeaveBalance[]> {
-    return this.http.get<LeaveBalance[]>(`${this.apiUrl}/balance/employee/${employeeId}`);
+    console.log('🔄 LeaveService: Fetching leave balances for employee:', employeeId);
+    
+    return this.http.get<LeaveBalance[]>(`${this.apiUrl}/balance/employee/${employeeId}`).pipe(
+      tap(balances => {
+        console.log('✅ LeaveService: Received leave balances:', balances.length);
+      }),
+      catchError(error => {
+        console.error('❌ LeaveService: Error fetching leave balances:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   getLeaveBalance(employeeId: number, leaveTypeId: number): Observable<LeaveBalance> {
