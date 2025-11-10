@@ -25,6 +25,22 @@ export class PayslipViewComponent implements OnInit {
   totalNetSalary: number = 0;
   generatedCount: number = 0;
 
+    downloadingPayslips: Set<number> = new Set();
+  downloadProgress: { [key: number]: number } = {};
+
+
+selectedPayslips: Set<number> = new Set();
+
+
+// Bulk download progress
+bulkDownloadProgress = {
+  show: false,
+  total: 0,
+  completed: 0,
+  percentage: 0
+};
+  
+
   constructor(
     private payrollService: PayrollService,
     private authService: AuthService,
@@ -195,7 +211,9 @@ private generateMissingPayslips(payrolls: any[]): void {
     });
   }
 
-  downloadPayslip(payslip: any): void {
+ 
+
+    downloadPayslip(payslip: any): void {
     console.log('📥 Downloading payslip:', payslip.payslipCode);
     
     if (!this.authService.isAuthenticated()) {
@@ -208,8 +226,61 @@ private generateMissingPayslips(payrolls: any[]): void {
       return;
     }
 
-    alert(`Download functionality for ${payslip.payslipCode} would be implemented here`);
+    this.isLoading = true;
+    
+    this.payrollService.downloadPayslipPdf(payslip.id).subscribe({
+      next: (pdfBlob: Blob) => {
+        this.isLoading = false;
+        this.handlePdfDownload(pdfBlob, payslip);
+        console.log('✅ Payslip downloaded successfully');
+      },
+      error: (error) => {
+        this.isLoading = false;
+        console.error('❌ Error downloading payslip:', error);
+        
+        if (error.status === 404) {
+          alert('Payslip PDF not found. Please generate the payslip first.');
+        } else if (error.status === 500) {
+          alert('Error generating PDF. Please try again.');
+        } else {
+          alert('Failed to download payslip. Please try again.');
+        }
+      }
+    });
   }
+
+    private handlePdfDownload(pdfBlob: Blob, payslip: any): void {
+    // Create blob URL
+    const blobUrl = URL.createObjectURL(pdfBlob);
+    
+    // Create download link
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = `payslip-${payslip.payslipCode}-${payslip.employeeCode}.pdf`;
+    
+    // Trigger download
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Clean up
+    URL.revokeObjectURL(blobUrl);
+    
+    // Optional: Show success message
+    this.showDownloadSuccess(payslip);
+  }
+
+  private showDownloadSuccess(payslip: any): void {
+    // You can use a toast notification here
+    console.log(`✅ Payslip downloaded: ${payslip.payslipCode}`);
+    
+    // Optional: Update UI to show downloaded status
+    const foundPayslip = this.payslips.find(p => p.id === payslip.id);
+    if (foundPayslip) {
+      foundPayslip.status = 'DOWNLOADED';
+    }
+  }
+
 
   viewPayslipDetails(payslipId: number): void {
     if (!this.authService.isAuthenticated()) {
@@ -285,6 +356,129 @@ private generateMissingPayslips(payrolls: any[]): void {
   get filteredCount(): number {
     return this.filteredPayslips.length;
   }
+
+
+
+  togglePayslipSelection(payslipId: number): void {
+  if (this.selectedPayslips.has(payslipId)) {
+    this.selectedPayslips.delete(payslipId);
+  } else {
+    this.selectedPayslips.add(payslipId);
+  }
+}
+
+isPayslipSelected(payslipId: number): boolean {
+  return this.selectedPayslips.has(payslipId);
+}
+
+toggleSelectAll(): void {
+  if (this.isAllSelected()) {
+    this.selectedPayslips.clear();
+  } else {
+    this.filteredPayslips.forEach(payslip => {
+      this.selectedPayslips.add(payslip.id);
+    });
+  }
+}
+
+isAllSelected(): boolean {
+  return this.filteredPayslips.length > 0 && 
+         this.selectedPayslips.size === this.filteredPayslips.length;
+}
+
+clearSelection(): void {
+  this.selectedPayslips.clear();
+}
+
+// Download methods
+isDownloading(payslipId: number): boolean {
+  return this.downloadingPayslips.has(payslipId);
+}
+
+getDownloadProgress(payslipId: number): number {
+  return this.downloadProgress[payslipId] || 0;
+}
+
+// Bulk download method
+downloadMultiplePayslips(): void {
+  if (this.selectedPayslips.size === 0) {
+    alert('Please select at least one payslip to download.');
+    return;
+  }
+
+  if (this.selectedPayslips.size > 10) {
+    if (!confirm(`You are about to download ${this.selectedPayslips.size} payslips. This may take a while. Continue?`)) {
+      return;
+    }
+  }
+
+  this.startBulkDownload();
+}
+
+private startBulkDownload(): void {
+  const selectedPayslips = this.filteredPayslips.filter(p => 
+    this.selectedPayslips.has(p.id)
+  );
+
+  this.bulkDownloadProgress = {
+    show: true,
+    total: selectedPayslips.length,
+    completed: 0,
+    percentage: 0
+  };
+
+  // Download payslips sequentially with delay
+  selectedPayslips.forEach((payslip, index) => {
+    setTimeout(() => {
+      this.downloadSinglePayslipForBulk(payslip);
+    }, index * 500); // 0.5 second delay between downloads
+  });
+}
+
+private downloadSinglePayslipForBulk(payslip: any): void {
+  this.downloadingPayslips.add(payslip.id);
+  
+  this.payrollService.downloadPayslipPdf(payslip.id).subscribe({
+    next: (pdfBlob: Blob) => {
+      this.handlePdfDownload(pdfBlob, payslip);
+      this.downloadingPayslips.delete(payslip.id);
+      this.updateBulkDownloadProgress();
+    },
+    error: (error) => {
+      this.downloadingPayslips.delete(payslip.id);
+      console.error(`❌ Error downloading payslip ${payslip.payslipCode}:`, error);
+      this.updateBulkDownloadProgress();
+    }
+  });
+}
+
+private updateBulkDownloadProgress(): void {
+  this.bulkDownloadProgress.completed++;
+  this.bulkDownloadProgress.percentage = Math.round(
+    (this.bulkDownloadProgress.completed / this.bulkDownloadProgress.total) * 100
+  );
+
+  // Hide progress when complete
+  if (this.bulkDownloadProgress.completed === this.bulkDownloadProgress.total) {
+    setTimeout(() => {
+      this.bulkDownloadProgress.show = false;
+      alert(`✅ Successfully downloaded ${this.bulkDownloadProgress.completed} payslips!`);
+    }, 1000);
+  }
+}
+
+cancelBulkDownload(): void {
+  this.bulkDownloadProgress.show = false;
+  this.downloadingPayslips.clear();
+  // Note: We can't cancel ongoing HTTP requests, but we can stop future ones
+}
+
+// Utility method
+getSelectedNetSalaryTotal(): number {
+  return this.filteredPayslips
+    .filter(p => this.selectedPayslips.has(p.id))
+    .reduce((sum, p) => sum + (p.netSalary || 0), 0);
+}
 
   // Debug method to check user info
   debugUserInfo(): void {

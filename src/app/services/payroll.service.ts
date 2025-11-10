@@ -138,4 +138,17 @@ export class PayrollService {
   getPayrollDashboard(): Observable<PayrollDashboard> {
     return this.http.get<PayrollDashboard>(`${this.apiUrl}/dashboard`);
   }
+
+    downloadPayslipPdf(payslipId: number): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/payslips/${payslipId}/download`, {
+      responseType: 'blob',
+      observe: 'body'
+    });
+  }
+
+  downloadPayslipByCode(payslipCode: string): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/payslips/code/${payslipCode}/download`, {
+      responseType: 'blob'
+    });
+  }
 }
