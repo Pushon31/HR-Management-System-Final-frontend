@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { AuthService } from '../../../services/auth.service';
 import { EmployeeService } from '../../../services/employee.service';
 import { DepartmentService } from '../../../services/department.service';
+import { AttendanceService } from '../../../services/attendance.service'; 
 import { Employee, EmployeeWorkType } from '../../../models/employee.model';
 import { Department } from '../../../models/department.model';
 
@@ -18,6 +19,15 @@ export class AdminDashboardComponent implements OnInit {
     activeEmployees: 0,
     todayAttendance: 0
   };
+  
+  // ✅ FIX: Add proper type for locationStats
+  locationStats: {
+    date?: string;
+    totalRecords?: number;
+    withLocationVerification?: number;
+    withoutLocationVerification?: number;
+    locationVerificationRate?: number;
+  } | null = null;
 
   recentEmployees: Employee[] = [];
   departments: Department[] = [];
@@ -27,12 +37,37 @@ export class AdminDashboardComponent implements OnInit {
   constructor(
     private authService: AuthService,
     private employeeService: EmployeeService,
-    private departmentService: DepartmentService
+    private departmentService: DepartmentService,
+    private attendanceService: AttendanceService // ✅ ADD: Inject AttendanceService
   ) {}
 
   ngOnInit(): void {
     this.currentUser = this.authService.getCurrentUser();
     this.loadDashboardData();
+    this.loadLocationStats();
+  }
+
+  private loadLocationStats(): void {
+    const today = new Date().toISOString().split('T')[0];
+    
+    // ✅ FIX: Add proper type annotation for stats parameter
+    this.attendanceService.getLocationAttendanceStats(today).subscribe({
+      next: (stats: any) => {
+        this.locationStats = stats;
+        console.log('📍 Location stats loaded:', stats);
+      },
+      error: (error: any) => {
+        console.error('Error loading location stats:', error);
+        // Set default values if error occurs
+        this.locationStats = {
+          date: today,
+          totalRecords: 0,
+          withLocationVerification: 0,
+          withoutLocationVerification: 0,
+          locationVerificationRate: 0
+        };
+      }
+    });
   }
 
   loadDashboardData(): void {
@@ -82,7 +117,7 @@ export class AdminDashboardComponent implements OnInit {
 
   loadWorkTypeStats(): void {
     this.employeeService.getWorkTypeStats().subscribe({
-      next: (stats: any) => {  // Changed from Map<EmployeeWorkType, number> to any
+      next: (stats: any) => {
         this.processWorkTypeStats(stats);
       },
       error: (error: any) => {
@@ -99,7 +134,7 @@ export class AdminDashboardComponent implements OnInit {
 
   processWorkTypeStats(stats: any): void {
     try {
-      // ✅ FIX: Handle both Map and plain object
+      // Handle both Map and plain object
       let values: number[];
       let entries: [string, number][];
 
@@ -165,5 +200,18 @@ export class AdminDashboardComponent implements OnInit {
   // Get initials for avatar
   getInitials(employee: Employee): string {
     return `${employee.firstName.charAt(0)}${employee.lastName.charAt(0)}`.toUpperCase();
+  }
+
+  // ✅ ADD: Get location verification percentage for display
+  getLocationVerificationPercentage(): number {
+    if (!this.locationStats || !this.locationStats.totalRecords || this.locationStats.totalRecords === 0) {
+      return 0;
+    }
+    return Math.round((this.locationStats.withLocationVerification || 0) / this.locationStats.totalRecords * 100);
+  }
+
+  // ✅ ADD: Check if location stats are available
+  hasLocationStats(): boolean {
+    return this.locationStats !== null && this.locationStats.totalRecords !== undefined;
   }
 }

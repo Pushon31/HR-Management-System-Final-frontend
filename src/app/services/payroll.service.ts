@@ -15,6 +15,8 @@ import {
 })
 export class PayrollService {
   private apiUrl = 'http://localhost:8080/api/payroll';
+    private employeeApiUrl = 'http://localhost:8080/api/employee/payroll'; 
+
 
   constructor(private http: HttpClient) {}
 
@@ -150,5 +152,32 @@ export class PayrollService {
     return this.http.get(`${this.apiUrl}/payslips/code/${payslipCode}/download`, {
       responseType: 'blob'
     });
+  }
+
+
+
+    getMyPayrollHistory(): Observable<Payroll[]> {
+    return this.http.get<Payroll[]>(`${this.employeeApiUrl}/my-payrolls`);
+  }
+
+  
+  getMyPayslips(): Observable<Payslip[]> {
+    return this.http.get<Payslip[]>(`${this.employeeApiUrl}/my-payslips`);
+  }
+
+  getMyPayslipsByPeriod(payPeriod: string): Observable<Payslip[]> {
+    return this.http.get<Payslip[]>(`${this.employeeApiUrl}/my-payslips/period/${payPeriod}`);
+  }
+
+
+  downloadMyPayslipPdf(payslipId: number): Observable<Blob> {
+    return this.http.get(`${this.employeeApiUrl}/payslips/${payslipId}/download`, {
+      responseType: 'blob'
+    });
+  }
+
+  
+  getMyPayrollSummary(): Observable<any> {
+    return this.http.get<any>(`${this.employeeApiUrl}/summary`);
   }
 }

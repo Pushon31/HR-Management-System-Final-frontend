@@ -15,14 +15,16 @@ export class AttendanceService {
     private authService: AuthService
   ) {}
 
-  // ✅ FIXED: Get current employee ID with proper error handling
+
+
   private getCurrentEmployeeId(): string {
-    const employeeId = this.authService.getEmployeeId();
-    if (!employeeId) {
-      throw new Error('No employee ID found. Please login again.');
-    }
-    return employeeId;
+  const employeeId = this.authService.getEmployeeId();
+  if (!employeeId) {
+    console.error('❌ No employee ID found for user:', this.authService.getCurrentUser()?.username);
+    throw new Error('No employee record found. Please contact administrator to create your employee profile.');
   }
+  return employeeId;
+}
 
   getAllAttendance(): Observable<Attendance[]> {
     console.log('🔄 Fetching all attendance records');
@@ -36,14 +38,19 @@ export class AttendanceService {
       );
   }
 
-  // ✅ FIXED: Check-in without parameter
-  checkIn(): Observable<Attendance> {
+   checkIn(latitude?: number, longitude?: number, deviceType: string = 'WEB'): Observable<Attendance> {
     const employeeId = this.getCurrentEmployeeId();
-    console.log('🔐 Checking in employee:', employeeId);
     
-    return this.http.post<Attendance>(`${this.apiUrl}/check-in/${employeeId}`, {})
+    let params = new HttpParams();
+    if (latitude !== undefined && longitude !== undefined) {
+      params = params.append('latitude', latitude.toString());
+      params = params.append('longitude', longitude.toString());
+    }
+    params = params.append('deviceType', deviceType);
+
+    return this.http.post<Attendance>(`${this.apiUrl}/check-in/${employeeId}`, {}, { params })
       .pipe(
-        tap(response => console.log('✅ Check-in successful:', response)),
+        tap(response => console.log('✅ Check-in successful with location:', response)),
         catchError((error: any) => {
           console.error('❌ Check-in error:', error);
           throw error;
@@ -51,16 +58,34 @@ export class AttendanceService {
       );
   }
 
-  // ✅ FIXED: Check-out without parameter
-  checkOut(): Observable<Attendance> {
+  checkOut(latitude?: number, longitude?: number, deviceType: string = 'WEB'): Observable<Attendance> {
     const employeeId = this.getCurrentEmployeeId();
-    return this.http.post<Attendance>(`${this.apiUrl}/check-out/${employeeId}`, {})
+    
+    let params = new HttpParams();
+    if (latitude !== undefined && longitude !== undefined) {
+      params = params.append('latitude', latitude.toString());
+      params = params.append('longitude', longitude.toString());
+    }
+    params = params.append('deviceType', deviceType);
+
+    return this.http.post<Attendance>(`${this.apiUrl}/check-out/${employeeId}`, {}, { params })
       .pipe(
         catchError((error: any) => {
           console.error('❌ Check-out error:', error);
           throw error;
         })
       );
+  }
+
+   //for admin
+    getLocationAttendanceStats(date: string): Observable<any> {
+    let params = new HttpParams().set('date', date);
+    return this.http.get<any>(`${this.apiUrl}/reports/location-stats`, { params });
+  }
+
+    private getDeviceType(): string {
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    return isMobile ? 'MOBILE' : 'DESKTOP';
   }
 
   // ✅ FIXED: Get today's attendance without parameter
@@ -207,4 +232,7 @@ export class AttendanceService {
   hasEmployeeRecord(): boolean {
     return this.authService.hasEmployeeRecord();
   }
+
+
+  
 }

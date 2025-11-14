@@ -14,6 +14,7 @@ export class PayslipViewComponent implements OnInit {
   filteredPayslips: any[] = [];
   isLoading: boolean = false;
   hasPayrollAccess: boolean = false;
+    isEmployeeView: boolean = false; 
   
   // Filters
   searchTerm: string = '';
@@ -51,19 +52,24 @@ bulkDownloadProgress = {
     this.checkAccessAndLoad();
   }
 
-  private checkAccessAndLoad(): void {
-    // Check if user has required roles for payroll access
-    const user = this.authService.getCurrentUser();
-    const requiredRoles = ['ROLE_ACCOUNTANT', 'ROLE_ADMIN', 'ROLE_MANAGER'];
-    
-    this.hasPayrollAccess = requiredRoles.some(role => 
-      user?.roles.includes(role)
-    );
 
-    console.log('🔐 Payroll Access Check:');
+
+  private checkAccessAndLoad(): void {
+    const user = this.authService.getCurrentUser();
+    
+    // ✅ FIXED: Use safe default values
+    const adminRoles = ['ROLE_ACCOUNTANT', 'ROLE_ADMIN', 'ROLE_MANAGER'];
+    const isEmployee = user?.roles?.includes('ROLE_EMPLOYEE') || false;
+    const hasAdminAccess = adminRoles.some(role => user?.roles?.includes(role)) || false;
+    
+    this.hasPayrollAccess = hasAdminAccess || isEmployee;
+    this.isEmployeeView = isEmployee && !hasAdminAccess;
+
+    console.log('🔐 Access Check:');
     console.log('   - User roles:', user?.roles);
-    console.log('   - Required roles:', requiredRoles);
-    console.log('   - Has access:', this.hasPayrollAccess);
+    console.log('   - Has admin access:', hasAdminAccess);
+    console.log('   - Is employee view:', this.isEmployeeView);
+    console.log('   - Has payroll access:', this.hasPayrollAccess);
 
     if (this.hasPayrollAccess) {
       this.loadPayslips();
@@ -72,7 +78,23 @@ bulkDownloadProgress = {
     }
   }
 
- private loadPayslips(): void {
+
+  
+  getBaseRoute(): string {
+    return this.authService.getBaseRoute();
+  }
+
+  
+  isAuthenticated(): boolean {
+    return this.authService.isAuthenticated();
+  }
+
+  getCurrentUser(): any {
+    return this.authService.getCurrentUser();
+  }
+
+
+  private loadPayslips(): void {
     this.isLoading = true;
     
     const currentDate = new Date();
@@ -80,48 +102,73 @@ bulkDownloadProgress = {
 
     console.log('📄 Loading payslips for period:', this.payPeriodFilter);
     
-    // First, check if we have payrolls for this period
-    this.payrollService.getPayrollsByPeriod(this.payPeriodFilter).subscribe({
-        next: (payrolls) => {
-            console.log('📊 Found payrolls:', payrolls.length);
-            
-            if (payrolls.length > 0) {
-                // Now load payslips
-                this.payrollService.getPayslipsByPayPeriod(this.payPeriodFilter).subscribe({
-                    next: (payslips) => {
-                        console.log('✅ Payslips loaded:', payslips.length);
-                        this.payslips = payslips;
-                        this.filteredPayslips = payslips;
-                        this.calculateStats();
-                        this.isLoading = false;
-                        
-                        // If no payslips but payrolls exist, suggest generating them
-                        if (payslips.length === 0 && payrolls.length > 0) {
-                            console.log('⚠️ Payrolls exist but no payslips found');
-                            if (confirm('Payroll data exists but payslips are not generated. Generate payslips now?')) {
-                                this.generateMissingPayslips(payrolls);
-                            }
-                        }
-                    },
-                    error: (error) => {
-                        console.error('❌ Error loading payslips:', error);
-                        this.isLoading = false;
-                    }
-                });
-            } else {
-                console.log('❌ No payrolls found for period:', this.payPeriodFilter);
-                this.payslips = [];
-                this.filteredPayslips = [];
-                this.calculateStats();
-                this.isLoading = false;
-            }
-        },
-        error: (error) => {
-            console.error('❌ Error checking payrolls:', error);
-            this.isLoading = false;
-        }
+    if (this.isEmployeeView) {
+      // ✅ EMPLOYEE: Load their own payslips
+      this.loadEmployeePayslips();
+    } else {
+      // ✅ ADMIN: Load all payslips (existing logic)
+      this.loadAdminPayslips();
+    }
+  }
+
+
+    private loadEmployeePayslips(): void {
+    this.payrollService.getMyPayslips().subscribe({
+      next: (payslips) => {
+        console.log('✅ Employee payslips loaded:', payslips.length);
+        this.payslips = payslips;
+        this.filteredPayslips = payslips;
+        this.calculateStats();
+        this.isLoading = false;
+      },
+      error: (error) => {
+        console.error('❌ Error loading employee payslips:', error);
+        this.isLoading = false;
+      }
     });
-}
+  }
+
+    private loadAdminPayslips(): void {
+    this.payrollService.getPayrollsByPeriod(this.payPeriodFilter).subscribe({
+      next: (payrolls) => {
+        console.log('📊 Found payrolls:', payrolls.length);
+        
+        if (payrolls.length > 0) {
+          this.payrollService.getPayslipsByPayPeriod(this.payPeriodFilter).subscribe({
+            next: (payslips) => {
+              console.log('✅ Admin payslips loaded:', payslips.length);
+              this.payslips = payslips;
+              this.filteredPayslips = payslips;
+              this.calculateStats();
+              this.isLoading = false;
+              
+              if (payslips.length === 0 && payrolls.length > 0) {
+                console.log('⚠️ Payrolls exist but no payslips found');
+                if (confirm('Payroll data exists but payslips are not generated. Generate payslips now?')) {
+                  this.generateMissingPayslips(payrolls);
+                }
+              }
+            },
+            error: (error) => {
+              console.error('❌ Error loading admin payslips:', error);
+              this.isLoading = false;
+            }
+          });
+        } else {
+          console.log('❌ No payrolls found for period:', this.payPeriodFilter);
+          this.payslips = [];
+          this.filteredPayslips = [];
+          this.calculateStats();
+          this.isLoading = false;
+        }
+      },
+      error: (error) => {
+        console.error('❌ Error checking payrolls:', error);
+        this.isLoading = false;
+      }
+    });
+  }
+
 
 private generateMissingPayslips(payrolls: any[]): void {
     payrolls.forEach(payroll => {
@@ -154,33 +201,18 @@ private generateMissingPayslips(payrolls: any[]): void {
     }
   }
 
-  applyFilters(): void {
-    if (!this.hasPayrollAccess) return;
-    
-    this.filteredPayslips = this.payslips.filter(payslip => {
-      const matchesSearch = 
-        payslip.employeeName?.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-        payslip.employeeCode?.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-        payslip.payslipCode?.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-        false;
-      
-      const matchesStatus = this.statusFilter === 'ALL' || payslip.status === this.statusFilter;
-      
-      return matchesSearch && matchesStatus;
-    });
-    
-    this.calculateStats();
-  }
+ 
 
-  private calculateStats(): void {
-    this.totalPayslips = this.filteredPayslips.length;
-    this.totalNetSalary = this.filteredPayslips.reduce((sum, p) => sum + (p.netSalary || 0), 0);
-    this.generatedCount = this.filteredPayslips.filter(p => p.status === 'GENERATED').length;
-  }
+ 
 
-  generatePayslip(payrollId: number): void {
+   generatePayslip(payrollId: number): void {
     if (!this.authService.isAuthenticated()) {
       this.redirectToLogin();
+      return;
+    }
+
+    if (this.isEmployeeView) {
+      alert('You do not have permission to generate payslips.');
       return;
     }
 
@@ -213,6 +245,8 @@ private generateMissingPayslips(payrolls: any[]): void {
 
  
 
+   
+
     downloadPayslip(payslip: any): void {
     console.log('📥 Downloading payslip:', payslip.payslipCode);
     
@@ -221,14 +255,14 @@ private generateMissingPayslips(payrolls: any[]): void {
       return;
     }
 
-    if (!this.hasPayrollAccess) {
-      alert('You do not have permission to download payslips.');
-      return;
-    }
-
     this.isLoading = true;
     
-    this.payrollService.downloadPayslipPdf(payslip.id).subscribe({
+    // ✅ CHOOSE CORRECT SERVICE METHOD BASED ON VIEW
+    const downloadObservable = this.isEmployeeView 
+      ? this.payrollService.downloadMyPayslipPdf(payslip.id)
+      : this.payrollService.downloadPayslipPdf(payslip.id);
+
+    downloadObservable.subscribe({
       next: (pdfBlob: Blob) => {
         this.isLoading = false;
         this.handlePdfDownload(pdfBlob, payslip);
@@ -242,11 +276,39 @@ private generateMissingPayslips(payrolls: any[]): void {
           alert('Payslip PDF not found. Please generate the payslip first.');
         } else if (error.status === 500) {
           alert('Error generating PDF. Please try again.');
+        } else if (error.status === 403) {
+          alert('You do not have permission to download this payslip.');
         } else {
           alert('Failed to download payslip. Please try again.');
         }
       }
     });
+  }
+
+
+    applyFilters(): void {
+    if (!this.hasPayrollAccess) return;
+    
+    this.filteredPayslips = this.payslips.filter(payslip => {
+      const matchesSearch = 
+        payslip.employeeName?.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+        payslip.employeeCode?.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+        payslip.payslipCode?.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+        false;
+      
+      const matchesStatus = this.statusFilter === 'ALL' || payslip.status === this.statusFilter;
+      
+      return matchesSearch && matchesStatus;
+    });
+    
+    this.calculateStats();
+  }
+
+
+    private calculateStats(): void {
+    this.totalPayslips = this.filteredPayslips.length;
+    this.totalNetSalary = this.filteredPayslips.reduce((sum, p) => sum + (p.netSalary || 0), 0);
+    this.generatedCount = this.filteredPayslips.filter(p => p.status === 'GENERATED').length;
   }
 
     private handlePdfDownload(pdfBlob: Blob, payslip: any): void {
@@ -399,21 +461,7 @@ getDownloadProgress(payslipId: number): number {
   return this.downloadProgress[payslipId] || 0;
 }
 
-// Bulk download method
-downloadMultiplePayslips(): void {
-  if (this.selectedPayslips.size === 0) {
-    alert('Please select at least one payslip to download.');
-    return;
-  }
 
-  if (this.selectedPayslips.size > 10) {
-    if (!confirm(`You are about to download ${this.selectedPayslips.size} payslips. This may take a while. Continue?`)) {
-      return;
-    }
-  }
-
-  this.startBulkDownload();
-}
 
 private startBulkDownload(): void {
   const selectedPayslips = this.filteredPayslips.filter(p => 
@@ -479,6 +527,36 @@ getSelectedNetSalaryTotal(): number {
     .filter(p => this.selectedPayslips.has(p.id))
     .reduce((sum, p) => sum + (p.netSalary || 0), 0);
 }
+
+
+  get canGeneratePayslips(): boolean {
+    return this.hasPayrollAccess && !this.isEmployeeView;
+  }
+
+   get canUseBulkOperations(): boolean {
+    return this.hasPayrollAccess && !this.isEmployeeView;
+  }
+
+    downloadMultiplePayslips(): void {
+    if (this.isEmployeeView) {
+      alert('Bulk download is not available for employees.');
+      return;
+    }
+
+    if (this.selectedPayslips.size === 0) {
+      alert('Please select at least one payslip to download.');
+      return;
+    }
+
+    if (this.selectedPayslips.size > 10) {
+      if (!confirm(`You are about to download ${this.selectedPayslips.size} payslips. This may take a while. Continue?`)) {
+        return;
+      }
+    }
+
+    this.startBulkDownload();
+  }
+
 
   // Debug method to check user info
   debugUserInfo(): void {

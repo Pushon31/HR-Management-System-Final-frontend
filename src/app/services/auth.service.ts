@@ -75,6 +75,17 @@ export class AuthService {
     }
   }
 
+  hasEmployeeRecord(): boolean {
+  const employeeId = this.getEmployeeId();
+  const hasRecord = !!employeeId;
+  console.log('🔍 Employee record check:', { 
+    hasRecord, 
+    employeeId, 
+    username: this.getCurrentUser()?.username 
+  });
+  return hasRecord;
+}
+
   private isTokenValid(token: string): boolean {
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
@@ -304,11 +315,13 @@ private clearAuthData(): void {
 
 
 
-  // ✅ ADDED: Check if user has employee record
-  hasEmployeeRecord(): boolean {
-    return !!this.getEmployeeId();
-  }
-
+  getEmployeeInfo(): { hasEmployee: boolean; employeeId: string | null; user: any } {
+  return {
+    hasEmployee: this.hasEmployeeRecord(),
+    employeeId: this.getEmployeeId(),
+    user: this.getCurrentUser()
+  };
+}
   // ✅ ADDED: Get user info with employee data
   getUserInfo(): any {
     const user = this.getCurrentUser();

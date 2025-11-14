@@ -9,6 +9,13 @@ export interface Attendance {
   totalHours: number;
   remarks: string;
   departmentName: string;
+
+    checkinLatitude?: number;
+  checkinLongitude?: number;
+  checkoutLatitude?: number;
+  checkoutLongitude?: number;
+  locationVerified?: boolean;
+  deviceType?: string;
 }
 
 export enum AttendanceStatus {
