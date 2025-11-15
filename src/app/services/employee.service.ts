@@ -52,6 +52,11 @@ export class EmployeeService {
     return this.http.put<Employee>(`${this.apiUrl}/${id}`, employee);
   }
 
+
+    getEmployeeByUserId(userId: number): Observable<Employee> {
+    return this.http.get<Employee>(`${this.apiUrl}/user/${userId}`);
+  }
+
   // Delete employee
   deleteEmployee(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);

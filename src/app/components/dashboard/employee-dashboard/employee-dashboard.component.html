@@ -1,1 +1,251 @@
-<p>employee-dashboard works!</p>
+<div class="employee-dashboard">
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-container">
+    <div class="loading-content">
+      <div class="spinner"></div>
+      <h3>Loading Your Dashboard</h3>
+      <p>Preparing your personalized workspace...</p>
+    </div>
+  </div>
+
+  <!-- Main Dashboard Content -->
+  <div *ngIf="!isLoading" class="dashboard-container">
+    
+    <!-- Welcome Header -->
+    <div class="welcome-hero">
+      <div class="hero-background"></div>
+      <div class="hero-content">
+        <div class="welcome-text">
+          <h1 class="greeting">{{ getGreeting() }}, {{ employee?.firstName }}! 👋</h1>
+          <p class="welcome-message">Welcome back to your workspace. Here's what's happening today.</p>
+          <div class="employee-badges">
+            <span class="badge badge-light">
+              <i class="fas fa-id-badge me-1"></i>{{ employee?.employeeId }}
+            </span>
+            <span class="badge badge-light">
+              <i class="fas fa-briefcase me-1"></i>{{ employee?.designation }}
+            </span>
+            <span *ngIf="employee?.workType" 
+                  class="badge" 
+                  [ngClass]="getWorkTypeBadgeClass(employee.workType)">
+              <i class="fas fa-laptop me-1"></i>{{ employee.workType }}
+            </span>
+          </div>
+        </div>
+        <div class="date-section">
+          <div class="current-date">
+            {{ currentDate | date:'EEEE, MMMM d, y' }}
+          </div>
+          <div class="current-time">
+            {{ currentTime | date:'hh:mm a' }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Statistics Grid -->
+    <div class="stats-grid">
+      <!-- Pending Tasks -->
+      <div class="stat-card" (click)="navigateTo('/employee/tasks')">
+        <div class="stat-icon pending-tasks">
+          <i class="fas fa-tasks"></i>
+        </div>
+        <div class="stat-content">
+          <div class="stat-number">{{ stats.pendingTasks }}</div>
+          <div class="stat-label">Pending Tasks</div>
+        </div>
+        <div class="stat-trend">
+          <i class="fas fa-clock text-warning"></i>
+          Needs attention
+        </div>
+      </div>
+
+      <!-- Leave Balance -->
+      <div class="stat-card" (click)="navigateTo('/employee/leaves/balance')">
+        <div class="stat-icon leave-balance">
+          <i class="fas fa-umbrella-beach"></i>
+        </div>
+        <div class="stat-content">
+          <div class="stat-number">{{ stats.leaveBalance }}</div>
+          <div class="stat-label">Leave Balance</div>
+        </div>
+        <div class="stat-trend">
+          <i class="fas fa-calendar text-info"></i>
+          Days available
+        </div>
+      </div>
+
+      <!-- Monthly Attendance -->
+      <div class="stat-card" (click)="navigateTo('/employee/attendance/history')">
+        <div class="stat-icon attendance">
+          <i class="fas fa-calendar-check"></i>
+        </div>
+        <div class="stat-content">
+          <div class="stat-number">{{ stats.attendanceThisMonth }}</div>
+          <div class="stat-label">Days Present</div>
+        </div>
+        <div class="stat-trend">
+          <i class="fas fa-check-circle text-success"></i>
+          This month
+        </div>
+      </div>
+
+      <!-- Upcoming Leaves -->
+      <div class="stat-card" (click)="navigateTo('/employee/leaves/history')">
+        <div class="stat-icon upcoming-leaves">
+          <i class="fas fa-plane-departure"></i>
+        </div>
+        <div class="stat-content">
+          <div class="stat-number">{{ stats.upcomingLeaves }}</div>
+          <div class="stat-label">Upcoming Leaves</div>
+        </div>
+        <div class="stat-trend">
+          <i class="fas fa-clock text-warning"></i>
+          Planned time off
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="content-grid">
+      
+      <!-- Left Column -->
+      <div class="content-column">
+        
+        <!-- Quick Actions -->
+        <div class="dashboard-card">
+          <div class="card-header">
+            <i class="fas fa-bolt"></i>
+            <h3>Quick Actions</h3>
+          </div>
+          <div class="card-content">
+            <div class="actions-grid">
+              <div *ngFor="let action of quickActions" 
+                   class="action-item" 
+                   (click)="navigateTo(action.route)"
+                   [ngClass]="action.color">
+                <div class="action-icon">
+                  <i [class]="action.icon"></i>
+                </div>
+                <div class="action-content">
+                  <div class="action-label">{{ action.label }}</div>
+                  <div class="action-description">{{ action.description }}</div>
+                </div>
+                <div class="action-arrow">
+                  <i class="fas fa-chevron-right"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Activities -->
+        <div class="dashboard-card">
+          <div class="card-header">
+            <i class="fas fa-bell"></i>
+            <h3>Recent Activities</h3>
+          </div>
+          <div class="card-content">
+            <div class="activities-list">
+              <div *ngFor="let activity of recentActivities" class="activity-item">
+                <div class="activity-icon" [ngClass]="activity.type">
+                  <i [class]="activity.icon"></i>
+                </div>
+                <div class="activity-content">
+                  <div class="activity-title">{{ activity.title }}</div>
+                  <div class="activity-description">{{ activity.description }}</div>
+                  <div class="activity-time">{{ activity.time }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right Column -->
+      <div class="content-column">
+        
+        <!-- Upcoming Leaves -->
+        <div class="dashboard-card">
+          <div class="card-header">
+            <i class="fas fa-calendar-alt"></i>
+            <h3>Upcoming Leaves</h3>
+          </div>
+          <div class="card-content">
+            <div *ngIf="upcomingLeaves.length === 0" class="empty-state">
+              <i class="fas fa-calendar-plus"></i>
+              <p>No upcoming leaves scheduled</p>
+              <button class="btn btn-primary btn-sm" (click)="navigateTo('/employee/leaves/apply')">
+                Apply for Leave
+              </button>
+            </div>
+            <div *ngIf="upcomingLeaves.length > 0" class="leaves-list">
+              <div *ngFor="let leave of upcomingLeaves" class="leave-item">
+                <div class="leave-type">{{ leave.type }}</div>
+                <div class="leave-dates">
+                  {{ formatDate(leave.startDate) }} - {{ formatDate(leave.endDate) }}
+                </div>
+                <div class="leave-details">
+                  <span class="leave-days">{{ leave.days }} day(s)</span>
+                  <span class="leave-status" [ngClass]="'status-' + leave.status.toLowerCase()">
+                    {{ leave.status }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Team Information -->
+        <div class="dashboard-card">
+          <div class="card-header">
+            <i class="fas fa-users"></i>
+            <h3>Team Overview</h3>
+          </div>
+          <div class="card-content">
+            <div class="team-stats">
+              <div class="team-stat">
+                <div class="team-stat-number">{{ stats.totalProjects }}</div>
+                <div class="team-stat-label">Active Projects</div>
+              </div>
+              <div class="team-stat">
+                <div class="team-stat-number">{{ stats.completedTasks }}</div>
+                <div class="team-stat-label">Completed Tasks</div>
+              </div>
+            </div>
+            <div class="team-message">
+              <i class="fas fa-info-circle text-info"></i>
+              <span>You're doing great! Keep up the good work.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Profile -->
+        <div class="dashboard-card profile-quickview">
+          <div class="card-header">
+            <i class="fas fa-user"></i>
+            <h3>Your Profile</h3>
+          </div>
+          <div class="card-content">
+            <div class="profile-summary">
+              <div class="profile-avatar-small">
+                <i class="fas fa-user-circle"></i>
+              </div>
+              <div class="profile-details">
+                <div class="profile-name">{{ employee?.firstName }} {{ employee?.lastName }}</div>
+                <div class="profile-designation">{{ employee?.designation }}</div>
+                <div class="profile-department">{{ employee?.departmentName || 'No Department' }}</div>
+              </div>
+            </div>
+            <button class="btn btn-outline-primary btn-sm mt-3" 
+                    (click)="navigateTo('/employee/profile')">
+              <i class="fas fa-eye me-1"></i>View Full Profile
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,1 +1,274 @@
-<p>employee-profile works!</p>
+<div class="employee-profile">
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-container">
+    <div class="loading-content">
+      <div class="spinner"></div>
+      <h3>Loading Your Profile</h3>
+      <p>Please wait while we fetch your information...</p>
+    </div>
+  </div>
+
+  <!-- Main Profile Content -->
+  <div *ngIf="!isLoading && employee" class="profile-container">
+    
+    <!-- Profile Header with Hero Section -->
+    <div class="profile-hero">
+      <div class="hero-background"></div>
+      <div class="hero-content">
+        <div class="profile-avatar">
+          <div class="avatar-circle">
+            <i class="fas fa-user"></i>
+          </div>
+          <div class="online-status"></div>
+        </div>
+        <div class="profile-info">
+          <h1 class="profile-name">{{ employee.firstName }} {{ employee.lastName }}</h1>
+          <p class="profile-title">{{ employee.designation || 'Employee' }}</p>
+          <div class="profile-badges">
+            <span class="badge badge-primary">{{ employee.departmentName || 'No Department' }}</span>
+            <span class="badge badge-secondary">{{ employee.employeeType }}</span>
+            <span class="badge badge-success">{{ employee.status }}</span>
+          </div>
+        </div>
+        <div class="profile-actions">
+          <button 
+            class="btn-edit"
+            (click)="toggleEdit()"
+            [disabled]="isEditing">
+            <i class="fas fa-edit"></i>
+            {{ isEditing ? 'Editing...' : 'Edit Profile' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Buttons during Edit -->
+    <div *ngIf="isEditing" class="action-bar">
+      <div class="action-buttons">
+        <button class="btn-save" (click)="saveProfile()" [disabled]="isSaving">
+          <i class="fas fa-check"></i>
+          {{ isSaving ? 'Saving...' : 'Save Changes' }}
+        </button>
+        <button class="btn-cancel" (click)="cancelEdit()" [disabled]="isSaving">
+          <i class="fas fa-times"></i>
+          Cancel
+        </button>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    <div *ngIf="errorMessage" class="message-error">
+      <i class="fas fa-exclamation-circle"></i>
+      {{ errorMessage }}
+    </div>
+
+    <div *ngIf="successMessage" class="message-success">
+      <i class="fas fa-check-circle"></i>
+      {{ successMessage }}
+    </div>
+
+    <!-- Profile Content Grid -->
+    <div class="profile-grid">
+      
+      <!-- Left Column -->
+      <div class="profile-column">
+        
+        <!-- Personal Information Card -->
+        <div class="info-card">
+          <div class="card-header">
+            <i class="fas fa-user-circle"></i>
+            <h3>Personal Information</h3>
+          </div>
+          <div class="card-content">
+            <div class="info-group">
+              <label>Employee ID</label>
+              <div class="info-value">{{ employee.employeeId }}</div>
+            </div>
+            <div class="info-group">
+              <label>Full Name</label>
+              <div class="info-value">{{ employee.firstName }} {{ employee.lastName }}</div>
+            </div>
+            <div class="info-group">
+              <label>Email</label>
+              <div class="info-value">{{ employee.email }}</div>
+            </div>
+            <div class="info-group">
+              <label>Phone</label>
+              <div class="info-value" [class.editable]="isEditing">
+                <input 
+                  *ngIf="isEditing" 
+                  [formControl]="phoneNumberControl"
+                  type="tel" 
+                  class="inline-edit"
+                  placeholder="Enter phone number">
+                <span *ngIf="!isEditing">{{ employee.phoneNumber || 'Not provided' }}</span>
+              </div>
+              <div *ngIf="isEditing && phoneNumberControl.invalid && phoneNumberControl.touched" class="error-text">
+                Please enter a valid phone number
+              </div>
+            </div>
+            <div class="info-row">
+              <div class="info-group">
+                <label>Gender</label>
+                <div class="info-value">{{ employee.gender || 'Not specified' }}</div>
+              </div>
+              <div class="info-group">
+                <label>Marital Status</label>
+                <div class="info-value">{{ employee.maritalStatus || 'Not specified' }}</div>
+              </div>
+            </div>
+            <div class="info-group">
+              <label>Birth Date</label>
+              <div class="info-value">{{ formatDate(employee.birthDate) }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Contact Information Card -->
+        <div class="info-card">
+          <div class="card-header">
+            <i class="fas fa-address-book"></i>
+            <h3>Contact Information</h3>
+          </div>
+          <div class="card-content">
+            <div class="info-group">
+              <label>Emergency Contact</label>
+              <div class="info-value" [class.editable]="isEditing">
+                <input 
+                  *ngIf="isEditing" 
+                  [formControl]="emergencyContactControl"
+                  type="text" 
+                  class="inline-edit"
+                  placeholder="Enter emergency contact">
+                <span *ngIf="!isEditing">{{ employee.emergencyContact || 'Not provided' }}</span>
+              </div>
+            </div>
+            <div class="info-group">
+              <label>Address</label>
+              <div class="info-value address-value" [class.editable]="isEditing">
+                <textarea 
+                  *ngIf="isEditing" 
+                  [formControl]="addressControl"
+                  class="inline-edit textarea-edit"
+                  rows="3"
+                  placeholder="Enter your address"></textarea>
+                <span *ngIf="!isEditing">{{ employee.address || 'Not provided' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right Column -->
+      <div class="profile-column">
+        
+        <!-- Employment Details Card -->
+        <div class="info-card">
+          <div class="card-header">
+            <i class="fas fa-briefcase"></i>
+            <h3>Employment Details</h3>
+          </div>
+          <div class="card-content">
+            <div class="info-group">
+              <label>Designation</label>
+              <div class="info-value">{{ employee.designation }}</div>
+            </div>
+            <div class="info-row">
+              <div class="info-group">
+                <label>Employee Type</label>
+                <div class="info-value">{{ employee.employeeType }}</div>
+              </div>
+              <div class="info-group">
+                <label>Work Type</label>
+                <div class="info-value">{{ employee.workType }}</div>
+              </div>
+            </div>
+            <div class="info-row">
+              <div class="info-group">
+                <label>Shift</label>
+                <div class="info-value">{{ employee.shift || 'Not specified' }}</div>
+              </div>
+              <div class="info-group">
+                <label>Status</label>
+                <div class="info-value status-badge" [class]="'status-' + employee.status?.toLowerCase()">
+                  {{ employee.status }}
+                </div>
+              </div>
+            </div>
+            <div class="info-group">
+              <label>Basic Salary</label>
+              <div class="info-value salary">{{ employee.basicSalary ? ('₹' + employee.basicSalary) : 'Not specified' }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Department & Joining Info Card -->
+        <div class="info-card">
+          <div class="card-header">
+            <i class="fas fa-building"></i>
+            <h3>Department & Joining</h3>
+          </div>
+          <div class="card-content">
+            <div class="info-group">
+              <label>Department</label>
+              <div class="info-value">{{ employee.departmentName || 'Not assigned' }}</div>
+            </div>
+            <div class="info-group">
+              <label>Reporting Manager</label>
+              <div class="info-value">{{ employee.managerName || 'Not assigned' }}</div>
+            </div>
+            <div class="info-group">
+              <label>Join Date</label>
+              <div class="info-value">{{ formatDate(employee.joinDate) }}</div>
+            </div>
+            <div class="info-group">
+              <label>Bank Account</label>
+              <div class="info-value" [class.editable]="isEditing">
+                <input 
+                  *ngIf="isEditing" 
+                  [formControl]="bankAccountNumberControl"
+                  type="text" 
+                  class="inline-edit"
+                  placeholder="Enter bank account number">
+                <span *ngIf="!isEditing">{{ employee.bankAccountNumber || 'Not provided' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Additional Information Card -->
+        <div class="info-card">
+          <div class="card-header">
+            <i class="fas fa-id-card"></i>
+            <h3>Additional Information</h3>
+          </div>
+          <div class="card-content">
+            <div class="info-group">
+              <label>NID Number</label>
+              <div class="info-value">{{ employee.nidNumber || 'Not provided' }}</div>
+            </div>
+            <div class="info-group">
+              <label>Profile Last Updated</label>
+              <div class="info-value">{{ formatDate(employee.joinDate) || 'Recently' }}</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- No Employee Record -->
+  <div *ngIf="!isLoading && !employee" class="empty-state">
+    <div class="empty-icon">
+      <i class="fas fa-user-slash"></i>
+    </div>
+    <h2>No Employee Record Found</h2>
+    <p>Your user account doesn't have an associated employee record in our system.</p>
+    <button class="btn-retry" (click)="loadEmployeeProfile()">
+      <i class="fas fa-redo"></i>
+      Try Again
+    </button>
+  </div>
+</div>
