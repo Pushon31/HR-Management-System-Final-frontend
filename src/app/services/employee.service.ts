@@ -34,12 +34,16 @@ export class EmployeeService {
   
 
   // Get employee by ID
-  getEmployeeById(id: number): Observable<Employee> {
-    return this.http.get<Employee>(`${this.apiUrl}/${id}`);
+
+
+    getEmployeeById(userId: number): Observable<Employee> {
+    return this.http.get<Employee>(`${this.apiUrl}/user/${userId}`);
   }
 
+  
+
   // Get employee by employee ID
-  getEmployeeByEmployeeId(employeeId: string): Observable<Employee> {
+  getEmployeeByEmployeeId(employeeId: any): Observable<Employee> {
     return this.http.get<Employee>(`${this.apiUrl}/employee-id/${employeeId}`);
   }
 

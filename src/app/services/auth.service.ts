@@ -3,6 +3,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { BehaviorSubject, Observable, throwError } from 'rxjs';
 import { tap, catchError, map } from 'rxjs/operators';
 import { Router } from '@angular/router';
+import { EmployeeService } from './employee.service';
 
 export interface LoginRequest {
   username: string;
@@ -48,7 +49,8 @@ export class AuthService {
 
   constructor(
     private http: HttpClient,
-    private router: Router
+    private router: Router,
+    private employeeService: EmployeeService
   ) {
     this.loadUserFromStorage();
   }
@@ -56,7 +58,7 @@ export class AuthService {
   private loadUserFromStorage(): void {
     const savedUser = localStorage.getItem('currentUser');
     const token = localStorage.getItem('token');
-    
+
     if (savedUser && token) {
       try {
         const user = JSON.parse(savedUser);
@@ -75,16 +77,23 @@ export class AuthService {
     }
   }
 
-  hasEmployeeRecord(): boolean {
-  const employeeId = this.getEmployeeId();
-  const hasRecord = !!employeeId;
-  console.log('🔍 Employee record check:', { 
-    hasRecord, 
-    employeeId, 
-    username: this.getCurrentUser()?.username 
-  });
-  return hasRecord;
-}
+  hasEmployeeRecord(id?: number): boolean {
+
+    console.log("get" + id);
+
+
+    const employeeId: string = this.getEmployeeIds(id!) || '';
+    console.log("sdfsdt" + employeeId);
+
+
+    const hasRecord = true
+    console.log('🔍 Employee record check:', {
+      hasRecord,
+      employeeId,
+      username: this.getCurrentUser()?.username
+    });
+    return hasRecord;
+  }
 
   private isTokenValid(token: string): boolean {
     try {
@@ -98,14 +107,14 @@ export class AuthService {
 
   login(loginData: LoginRequest): Observable<AuthResponse> {
     console.log('🔐 AuthService: Starting login process for:', loginData.username);
-    
+
     return this.http.post<AuthResponse>(`${this.apiUrl}/signin`, loginData)
       .pipe(
         tap(response => {
           console.log('✅ AuthService: Login API response received');
           console.log('✅ User roles:', response.roles);
           console.log('✅ Employee ID:', response.employeeId); // ✅ ADDED
-          
+
           const user: User = {
             id: response.id,
             username: response.username,
@@ -115,14 +124,14 @@ export class AuthService {
             token: response.token,
             employeeId: response.employeeId // ✅ ADDED
           };
-          
+
           this.setCurrentUser(user);
           console.log('✅ Login successful for user:', user.username);
         }),
         catchError(error => {
           console.error('❌ AuthService: Login API error', error);
           let errorMessage = 'Login failed. Please check your credentials.';
-          
+
           if (error.error && error.error.message) {
             errorMessage = error.error.message;
           } else if (error.status === 401) {
@@ -130,7 +139,7 @@ export class AuthService {
           } else if (error.status === 0) {
             errorMessage = 'Cannot connect to server. Please check your connection.';
           }
-          
+
           return throwError(() => new Error(errorMessage));
         })
       );
@@ -142,13 +151,13 @@ export class AuthService {
         catchError(error => {
           console.error('Signup error:', error);
           let errorMessage = 'Registration failed. Please try again.';
-          
+
           if (error.error && error.error.message) {
             errorMessage = error.error.message;
           } else if (error.message) {
             errorMessage = error.message;
           }
-          
+
           return throwError(() => new Error(errorMessage));
         })
       );
@@ -166,10 +175,10 @@ export class AuthService {
         employeeId: user.employeeId // ✅ ADDED
       }));
       localStorage.setItem('token', user.token);
-      
+
       // Update BehaviorSubject
       this.currentUserSubject.next(user);
-      
+
       console.log('✅ User stored successfully:', user.username);
     } catch (error) {
       console.error('❌ Error storing user data:', error);
@@ -181,68 +190,68 @@ export class AuthService {
   }
 
   getToken(): string | null {
-  // Check both service state and localStorage
-  const storedToken = localStorage.getItem('token');
-  console.log('🔐 getToken():', storedToken ? 'Found in storage' : 'Not in storage');
-  return storedToken;
-}
-
-isAuthenticated(): boolean {
-  const token = this.getToken();
-  
-  if (!token) {
-    console.log('🔐 isAuthenticated(): No token found');
-    return false;
+    // Check both service state and localStorage
+    const storedToken = localStorage.getItem('token');
+    console.log('🔐 getToken():', storedToken ? 'Found in storage' : 'Not in storage');
+    return storedToken;
   }
 
-  try {
-    // Decode token to check expiry
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    const currentTime = Date.now() / 1000;
-    const isExpired = payload.exp < currentTime;
-    
-    console.log('🔐 Token validation details:');
-    console.log('   - Token issued:', new Date(payload.iat * 1000));
-    console.log('   - Token expires:', new Date(payload.exp * 1000));
-    console.log('   - Current time:', new Date(currentTime * 1000));
-    console.log('   - Time until expiry:', (payload.exp - currentTime).toFixed(0) + ' seconds');
-    console.log('   - Is expired:', isExpired);
-    
-    if (isExpired) {
-      console.log('🔐 Token expired, clearing auth data');
+  isAuthenticated(): boolean {
+    const token = this.getToken();
+
+    if (!token) {
+      console.log('🔐 isAuthenticated(): No token found');
+      return false;
+    }
+
+    try {
+      // Decode token to check expiry
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const currentTime = Date.now() / 1000;
+      const isExpired = payload.exp < currentTime;
+
+      console.log('🔐 Token validation details:');
+      console.log('   - Token issued:', new Date(payload.iat * 1000));
+      console.log('   - Token expires:', new Date(payload.exp * 1000));
+      console.log('   - Current time:', new Date(currentTime * 1000));
+      console.log('   - Time until expiry:', (payload.exp - currentTime).toFixed(0) + ' seconds');
+      console.log('   - Is expired:', isExpired);
+
+      if (isExpired) {
+        console.log('🔐 Token expired, clearing auth data');
+        this.clearAuthData();
+        return false;
+      }
+
+      console.log('🔐 Token is valid');
+      return true;
+    } catch (error) {
+      console.error('🔐 Error decoding token:', error);
+      console.log('🔐 Token might be malformed, clearing auth data');
       this.clearAuthData();
       return false;
     }
-    
-    console.log('🔐 Token is valid');
-    return true;
-  } catch (error) {
-    console.error('🔐 Error decoding token:', error);
-    console.log('🔐 Token might be malformed, clearing auth data');
-    this.clearAuthData();
-    return false;
   }
-}
 
-isTokenLikelyValid(): boolean {
-  const token = this.getToken();
-  if (!token) return false;
+  isTokenLikelyValid(): boolean {
+    const token = this.getToken();
+    if (!token) return false;
 
-  try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    const currentTime = Date.now() / 1000;
-    return payload.exp > currentTime;
-  } catch {
-    return false;
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const currentTime = Date.now() / 1000;
+      return payload.exp > currentTime;
+    } catch {
+      return false;
+    }
   }
-}
-// Make sure clearAuthData is properly implemented
-private clearAuthData(): void {
-  console.log('🧹 Clearing auth data from storage');
-  localStorage.removeItem('currentUser');
-  localStorage.removeItem('token');
-  this.currentUserSubject.next(null);
-}
+  // Make sure clearAuthData is properly implemented
+  private clearAuthData(): void {
+    console.log('🧹 Clearing auth data from storage');
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('token');
+    this.currentUserSubject.next(null);
+  }
   isLoggedIn(): boolean {
     return this.isAuthenticated();
   }
@@ -250,7 +259,45 @@ private clearAuthData(): void {
   // ✅ UPDATED: Get employee ID from user data
   getEmployeeId(): string | null {
     const user = this.getCurrentUser();
+    if (!user) {
+      this.employeeService.getEmployeeById(user!.id).subscribe((x) => {
+
+        console.log(x);
+        console.log(x.employeeId);
+
+
+        return x.employeeId;
+
+
+      })
+
+    }
+
     return user?.employeeId || null;
+  }
+
+
+  getEmployeeIds(id: number): string | null {
+
+
+
+    let empId: string | undefined;
+
+    this.employeeService.getEmployeeById(id).subscribe((x) => {
+
+      console.log(x, '-----------------val-----------------------');
+      console.log(x.employeeId, '-----------------val2-----------------------');
+
+      empId = x.employeeId
+
+      return empId;
+
+    });
+
+
+    return empId || null;
+
+
   }
 
   getUserRole(): string {
@@ -259,14 +306,14 @@ private clearAuthData(): void {
 
     const roleMap: { [key: string]: string } = {
       'ROLE_ADMIN': 'admin',
-      'ROLE_MANAGER': 'manager', 
+      'ROLE_MANAGER': 'manager',
       'ROLE_HR': 'hr',
       'ROLE_ACCOUNTANT': 'accountant',
       'ROLE_EMPLOYEE': 'employee'
     };
 
     const priorityOrder = ['ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_HR', 'ROLE_ACCOUNTANT', 'ROLE_EMPLOYEE'];
-    
+
     for (const role of priorityOrder) {
       if (user.roles.includes(role)) {
         return roleMap[role] || 'employee';
@@ -280,7 +327,7 @@ private clearAuthData(): void {
 
   getBaseRoute(): string {
     const role = this.getUserRole();
-    
+
     if (role === 'admin') {
       return 'admin';
     } else if (role === 'manager' || role === 'hr' || role === 'accountant') {
@@ -293,15 +340,15 @@ private clearAuthData(): void {
   redirectBasedOnRole(): void {
     const role = this.getUserRole();
     console.log('🔄 Redirecting user with role:', role);
-    
+
     const routes: { [key: string]: string } = {
       'admin': '/admin/dashboard',
-      'manager': '/manager/dashboard', 
+      'manager': '/manager/dashboard',
       'hr': '/hr/dashboard',
       'accountant': '/accountant/dashboard',
       'employee': '/employee/dashboard'
     };
-    
+
     const route = routes[role] || '/login';
     this.router.navigate([route]);
   }
@@ -315,18 +362,25 @@ private clearAuthData(): void {
 
 
 
-  getEmployeeInfo(): { hasEmployee: boolean; employeeId: string | null; user: any } {
-  return {
-    hasEmployee: this.hasEmployeeRecord(),
-    employeeId: this.getEmployeeId(),
-    user: this.getCurrentUser()
-  };
-}
+  //   getEmployeeInfo(): { hasEmployee: boolean; employeeId: string | null; user: any } {
+  //   return {
+  //     hasEmployee: this.hasEmployeeRecord(),
+  //     employeeId: this.getEmployeeId(),
+  //     user: this.getCurrentUser()
+  //   };
+  // }
+
+  getEmployeeInfo(): { employeeId: string | null; user: any } {
+    return {
+      employeeId: this.getEmployeeId(),
+      user: this.getCurrentUser()
+    };
+  }
   // ✅ ADDED: Get user info with employee data
   getUserInfo(): any {
     const user = this.getCurrentUser();
     const token = this.getToken();
-    
+
     return {
       user: user,
       employeeId: this.getEmployeeId(),
@@ -341,7 +395,7 @@ private clearAuthData(): void {
   getTokenInfo(): any {
     const token = this.getToken();
     if (!token) return null;
-    
+
     try {
       const payload = JSON.parse(atob(token.split('.')[1]));
       return {
@@ -380,49 +434,49 @@ private clearAuthData(): void {
     return this.hasRole('accountant') || this.hasRole('admin');
   }
 
-hasRole(role: string): boolean {
-  const user = this.getCurrentUser();
-  if (!user || !user.roles) {
-    console.log('🔍 AuthService: No user or roles found');
-    return false;
+  hasRole(role: string): boolean {
+    const user = this.getCurrentUser();
+    if (!user || !user.roles) {
+      console.log('🔍 AuthService: No user or roles found');
+      return false;
+    }
+
+    console.log('🔍 AuthService: Checking role', role, 'in user roles:', user.roles);
+
+    // Handle both role formats: 'admin' and 'ROLE_ADMIN'
+    const roleFormats = [
+      role, // original format ('admin')
+      `ROLE_${role.toUpperCase()}`, // convert 'admin' to 'ROLE_ADMIN'
+      role.toUpperCase() // convert 'admin' to 'ADMIN'
+    ];
+
+    const roleMapping: { [key: string]: string[] } = {
+      'admin': ['ROLE_ADMIN'],
+      'manager': ['ROLE_MANAGER', 'ROLE_ADMIN'],
+      'hr': ['ROLE_HR', 'ROLE_ADMIN'],
+      'accountant': ['ROLE_ACCOUNTANT', 'ROLE_ADMIN'],
+      'employee': ['ROLE_EMPLOYEE', 'ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_HR', 'ROLE_ACCOUNTANT']
+    };
+
+    // Get allowed roles for the requested role
+    const allowedRoles = roleMapping[role] || [];
+
+    // Check if user has any of the allowed roles OR any of the role formats
+    const hasRole = user.roles.some(userRole =>
+      allowedRoles.includes(userRole) ||
+      roleFormats.includes(userRole)
+    );
+
+    console.log('🔍 AuthService: Role check result:', hasRole);
+    console.log('🔍 Allowed roles:', allowedRoles);
+    console.log('🔍 Role formats:', roleFormats);
+
+    return hasRole;
   }
 
-  console.log('🔍 AuthService: Checking role', role, 'in user roles:', user.roles);
-
-  // Handle both role formats: 'admin' and 'ROLE_ADMIN'
-  const roleFormats = [
-    role, // original format ('admin')
-    `ROLE_${role.toUpperCase()}`, // convert 'admin' to 'ROLE_ADMIN'
-    role.toUpperCase() // convert 'admin' to 'ADMIN'
-  ];
-
-  const roleMapping: { [key: string]: string[] } = {
-    'admin': ['ROLE_ADMIN'],
-    'manager': ['ROLE_MANAGER', 'ROLE_ADMIN'],
-    'hr': ['ROLE_HR', 'ROLE_ADMIN'],
-    'accountant': ['ROLE_ACCOUNTANT', 'ROLE_ADMIN'],
-    'employee': ['ROLE_EMPLOYEE', 'ROLE_ADMIN', 'ROLE_MANAGER', 'ROLE_HR', 'ROLE_ACCOUNTANT']
-  };
-
-  // Get allowed roles for the requested role
-  const allowedRoles = roleMapping[role] || [];
-  
-  // Check if user has any of the allowed roles OR any of the role formats
-  const hasRole = user.roles.some(userRole => 
-    allowedRoles.includes(userRole) || 
-    roleFormats.includes(userRole)
-  );
-
-  console.log('🔍 AuthService: Role check result:', hasRole);
-  console.log('🔍 Allowed roles:', allowedRoles);
-  console.log('🔍 Role formats:', roleFormats);
-  
-  return hasRole;
-}
-
-// Or create a separate method for role checking with the role string format you're using
-hasRoleString(roleString: string): boolean {
-  const user = this.getCurrentUser();
-  return user ? user.roles.includes(roleString) : false;
-}
+  // Or create a separate method for role checking with the role string format you're using
+  hasRoleString(roleString: string): boolean {
+    const user = this.getCurrentUser();
+    return user ? user.roles.includes(roleString) : false;
+  }
 }

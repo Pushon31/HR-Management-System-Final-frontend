@@ -3,28 +3,35 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, catchError, tap } from 'rxjs';
 import { Attendance, AttendanceStatus } from '../models/attendance.model';
 import { AuthService } from './auth.service';
+import { log } from 'console';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AttendanceService {
   private apiUrl = 'http://localhost:8080/api/attendance';
-
+  private currentUser: any = this.authService.getCurrentUser();
   constructor(
     private http: HttpClient,
     private authService: AuthService
-  ) {}
+  ) { }
 
 
 
   private getCurrentEmployeeId(): string {
-  const employeeId = this.authService.getEmployeeId();
-  if (!employeeId) {
-    console.error('❌ No employee ID found for user:', this.authService.getCurrentUser()?.username);
-    throw new Error('No employee record found. Please contact administrator to create your employee profile.');
+
+    console.log('---------------getCurrentEmployeeId-----------------', this.currentUser);
+
+
+    const employeeId = this.authService.getEmployeeIds(this.currentUser?.id);
+    console.log('---------------employeeIdd-----------------', employeeId);
+
+    if (!employeeId) {
+      console.error('❌ No employee ID found for user:', this.authService.getCurrentUser()?.username);
+      throw new Error('No employee record found. Please contact administrator to create your employee profile.');
+    }
+    return employeeId;
   }
-  return employeeId;
-}
 
   getAllAttendance(): Observable<Attendance[]> {
     console.log('🔄 Fetching all attendance records');
@@ -38,9 +45,13 @@ export class AttendanceService {
       );
   }
 
-   checkIn(latitude?: number, longitude?: number, deviceType: string = 'WEB'): Observable<Attendance> {
-    const employeeId = this.getCurrentEmployeeId();
-    
+  checkIn(latitude?: number, longitude?: number, deviceType: string = 'WEB', employeeId?: any): Observable<Attendance> {
+
+
+    // const employeeId = this.getCurrentEmployeeId();
+    console.log('-------------------AVB-------------------------', employeeId);
+
+
     let params = new HttpParams();
     if (latitude !== undefined && longitude !== undefined) {
       params = params.append('latitude', latitude.toString());
@@ -60,7 +71,7 @@ export class AttendanceService {
 
   checkOut(latitude?: number, longitude?: number, deviceType: string = 'WEB'): Observable<Attendance> {
     const employeeId = this.getCurrentEmployeeId();
-    
+
     let params = new HttpParams();
     if (latitude !== undefined && longitude !== undefined) {
       params = params.append('latitude', latitude.toString());
@@ -77,13 +88,13 @@ export class AttendanceService {
       );
   }
 
-   //for admin
-    getLocationAttendanceStats(date: string): Observable<any> {
+  //for admin
+  getLocationAttendanceStats(date: string): Observable<any> {
     let params = new HttpParams().set('date', date);
     return this.http.get<any>(`${this.apiUrl}/reports/location-stats`, { params });
   }
 
-    private getDeviceType(): string {
+  private getDeviceType(): string {
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     return isMobile ? 'MOBILE' : 'DESKTOP';
   }
@@ -105,7 +116,7 @@ export class AttendanceService {
     let params = new HttpParams()
       .set('startDate', startDate)
       .set('endDate', endDate);
-    
+
     return this.http.get<Attendance[]>(`${this.apiUrl}/history/${employeeId}`, { params })
       .pipe(
         catchError((error: any) => {
@@ -126,7 +137,7 @@ export class AttendanceService {
     let params = new HttpParams()
       .set('year', year.toString())
       .set('month', month.toString());
-    
+
     return this.http.get<Attendance[]>(`${this.apiUrl}/monthly/${employeeId}`, { params })
       .pipe(
         catchError((error: any) => {
@@ -164,7 +175,7 @@ export class AttendanceService {
     let params = new HttpParams()
       .set('year', year.toString())
       .set('month', month.toString());
-    
+
     return this.http.get<any>(`${this.apiUrl}/summary/${employeeId}`, { params })
       .pipe(
         catchError((error: any) => {
@@ -234,5 +245,5 @@ export class AttendanceService {
   }
 
 
-  
+
 }

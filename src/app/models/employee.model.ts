@@ -59,4 +59,5 @@ export interface Employee {
   managerName: string;
   status: EmployeeStatus;
   workType: EmployeeWorkType;
+  userId?:any;
 }
