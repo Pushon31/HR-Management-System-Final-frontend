@@ -37,7 +37,7 @@ export class AttendanceCheckinComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.currentUser = this.authService.getCurrentUser();
-    console.log('👤 Current User:', this.currentUser);
+    console.log('👤 Current User:-', this.currentUser);
     console.log('🆔 Employee ID:', this.authService.getEmployeeIds(this.currentUser.id));
 
     if (this.currentUser) {
@@ -162,16 +162,20 @@ export class AttendanceCheckinComponent implements OnInit, OnDestroy {
     console.log("651454  " + this.currentUser.id);
 
 
-    const employeeId = this.authService.getEmployeeIds(this.currentUser.id);
+    let employeeId = '';
+
+  this.employeeService.getEmployeeById(this.currentUser.id).subscribe((x) => {
+
+
+      employeeId = x.employeeId
 
     if (employeeId) {
-      console.log('🔄 Loading employee data for employee ID:', employeeId);
 
       this.employeeService.getEmployeeByEmployeeId(employeeId).subscribe({
         next: (employee) => {
           console.log('✅ Employee data loaded:', employee);
           this.employeeData = employee;
-          this.loadTodayAttendance();
+          this.loadTodayAttendance(employeeId);
         },
         error: (error) => {
           console.error('❌ Error loading employee data:', error);
@@ -186,26 +190,29 @@ export class AttendanceCheckinComponent implements OnInit, OnDestroy {
       this.loading = false;
       // Don't try to load attendance without employee ID
     }
+    });
+
+
   }
 
 
 
-  loadTodayAttendance(): void {
+  loadTodayAttendance(employeeId : any): void {
+
     if (!this.currentUser) {
       this.loading = false;
       return;
     }
 
-    const employeeId = this.authService.getEmployeeId();
     if (!employeeId) {
       console.warn('⚠️ No employee ID, skipping attendance load');
       this.loading = false;
       return;
     }
 
-    console.log('🔄 Loading today attendance for employee:', employeeId);
+    console.log('🔄------------------ Loading today attendance for employee:--------------------------------------------', employeeId);
 
-    this.attendanceService.getTodayAttendance().subscribe({
+    this.attendanceService.getTodayAttendanceByEmployeeId(employeeId).subscribe({
       next: (attendance) => {
         console.log('✅ Today attendance:', attendance);
         this.todayAttendance = attendance;
@@ -223,7 +230,7 @@ export class AttendanceCheckinComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ✅ UPDATE: Enhanced check-in with location
+  //  UPDATE: Enhanced check-in with location
   async checkIn(): Promise<void> {
     if (!this.currentUser) {
       alert('Please login first');
@@ -243,7 +250,7 @@ export class AttendanceCheckinComponent implements OnInit, OnDestroy {
 
        this.employeeService.getEmployeeById(this.currentUser?.id).subscribe((x) => {
 
-      console.log(x, '-----------------val-----------------------');
+      // console.log(x, '-----------------val-----------------------');
       console.log(x.employeeId, '-----------------val2-----------------------');
 
 
@@ -253,7 +260,7 @@ export class AttendanceCheckinComponent implements OnInit, OnDestroy {
             // Call enhanced check-in with location
       this.attendanceService.checkIn(location.lat, location.lng, 'WEB', employeeId).subscribe({
         next: (attendance) => {
-          console.log('----------------------1-----------------------');
+          // console.log('----------------------1-----------------------');
 
           console.log('✅ Check-in successful:', attendance);
           this.todayAttendance = attendance;
@@ -267,7 +274,7 @@ export class AttendanceCheckinComponent implements OnInit, OnDestroy {
 
         },
         error: (error) => {
-          console.log('----------------------2-----------------------');
+          // console.log('----------------------2-----------------------');
 
           console.error('❌ Check-in error:', error);
           this.checkingIn = false;
@@ -277,17 +284,17 @@ export class AttendanceCheckinComponent implements OnInit, OnDestroy {
           alert('Check-in failed: ' + errorMessage);
         }
       });
-      console.log('----------------------3-----------------------');
+      // console.log('----------------------3-----------------------');
 
 
     });
-      console.log('---------------------employeeId--------2222---------------', employeeId);
+      // console.log('---------------------employeeId--------2222---------------', employeeId);
 
 
 
 
     } catch (error) {
-      console.log('----------------------4-----------------------');
+      // console.log('----------------------4-----------------------');
 
       console.error('❌ Location error during check-in:', error);
       this.checkingIn = false;
@@ -337,29 +344,57 @@ export class AttendanceCheckinComponent implements OnInit, OnDestroy {
       // Get current location
       const location = await this.getCurrentLocation();
       console.log('🔄 Checking out with location:', location);
+      let employeeId = '';
 
-      this.attendanceService.checkOut(location.lat, location.lng, 'WEB').subscribe({
+       this.employeeService.getEmployeeById(this.currentUser?.id).subscribe((x) => {
+
+      // console.log(x, '-----------------val-----------------------');
+      // console.log(x.employeeId, '-----------------val2-----------------------');
+
+
+      employeeId = x.employeeId;
+
+
+            // Call enhanced check-in with location
+      this.attendanceService.checkOut(location.lat, location.lng, 'WEB', employeeId).subscribe({
         next: (attendance) => {
+          // console.log('----------------------1-----------------------');
+
+          console.log('✅ Check-out successful:', attendance);
           this.todayAttendance = attendance;
           this.checkingOut = false;
 
-          const hours = attendance.totalHours || this.calculateWorkingHours();
-          alert(`Check-out successful! ✅\nTotal working hours: ${hours}`);
+          // if (this.isLateCheckIn()) {
+          //   alert('Checked in successfully! 🟡 (Late arrival)');
+          // } else {
+          //   alert('Checked in successfully! ✅ (On time)');
+          // }
+
         },
         error: (error) => {
-          console.error('Error during check-out:', error);
+          // console.log('----------------------2-----------------------');
+
+          console.error('❌ Check-out error:', error);
           this.checkingOut = false;
-          const errorMessage = error.error?.message || 'Please try again.';
-          this.errorMessage = 'Check-out failed: ' + errorMessage;
-          alert('Error during check-out: ' + errorMessage);
+
+          const errorMessage = error.error?.message || error.message || 'Please try again.';
+          this.errorMessage = 'Check-Out failed: ' + errorMessage;
+          alert('Check-Out failed: ' + errorMessage);
         }
       });
+      // console.log('----------------------3-----------------------');
 
-    } catch (locationError) {
-      console.error('❌ Location error during check-out:', locationError);
+
+    });
+
+    } 
+     catch (error) {
+      // console.log('----------------------4-----------------------');
+
+      console.error('❌ Location error during check-out:', error);
       this.checkingOut = false;
 
-      // Allow check-out without location
+      // Option 1: Allow check-in without location
       const proceedWithoutLocation = confirm(
         'Location access failed. Would you like to check-out without location verification?'
       );
@@ -368,6 +403,13 @@ export class AttendanceCheckinComponent implements OnInit, OnDestroy {
         this.checkOutWithoutLocation();
       }
     }
+
+
+
+
+
+
+ 
   }
 
   //  Check-out without location (fallback)

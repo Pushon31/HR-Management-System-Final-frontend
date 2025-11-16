@@ -69,8 +69,8 @@ export class AttendanceService {
       );
   }
 
-  checkOut(latitude?: number, longitude?: number, deviceType: string = 'WEB'): Observable<Attendance> {
-    const employeeId = this.getCurrentEmployeeId();
+  checkOut(latitude?: number, longitude?: number, deviceType: string = 'WEB', employeeId?: any): Observable<Attendance> {
+    // const employeeId = this.getCurrentEmployeeId();
 
     let params = new HttpParams();
     if (latitude !== undefined && longitude !== undefined) {
@@ -110,7 +110,16 @@ export class AttendanceService {
         })
       );
   }
-
+  // ✅ FIXED: Get today's attendance without parameter
+  getTodayAttendanceByEmployeeId(employeeId : any): Observable<Attendance> {
+    return this.http.get<Attendance>(`${this.apiUrl}/today/${employeeId}`)
+      .pipe(
+        catchError((error: any) => {
+          console.error('❌ Error loading today attendance:', error);
+          throw error;
+        })
+      );
+  }
   // ✅ FIXED: Employee attendance history (for specific employee)
   getEmployeeAttendanceHistory(employeeId: string, startDate: string, endDate: string): Observable<Attendance[]> {
     let params = new HttpParams()
